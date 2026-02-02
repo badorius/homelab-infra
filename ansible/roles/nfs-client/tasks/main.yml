@@ -1,0 +1,18 @@
+- name: Install NFS utils
+  pacman:
+    name: nfs-utils
+    state: present
+
+- name: Create mount point
+  file:
+    path: /mnt/nfs
+    state: directory
+
+- name: Add NFS mount
+  mount:
+    path: /mnt/nfs
+    src: openmediavault.home:/share
+    fstype: nfs
+    opts: defaults,timeo=900,retrans=5,_netdev
+    state: mounted
+
