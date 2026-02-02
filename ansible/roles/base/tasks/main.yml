@@ -1,0 +1,31 @@
+- name: Update system
+  pacman:
+    update_cache: yes
+    upgrade: yes
+
+- name: Install base packages
+  pacman:
+    name:
+      - vim
+      - nano
+      - htop
+      - curl
+      - wget
+      - git
+      - rsync
+      - unzip
+      - zip
+      - lsof
+      - ncdu
+      - bash-completion
+      - btrfs-progs
+      - chrony
+      - bind
+    state: present
+
+- name: Enable chrony
+  systemd:
+    name: chronyd
+    enabled: yes
+    state: started
+
