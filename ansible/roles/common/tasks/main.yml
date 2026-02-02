@@ -1,0 +1,26 @@
+- name: Set hostname
+  hostname:
+    name: "{{ inventory_hostname }}"
+
+- name: Set timezone
+  timezone:
+    name: Europe/Madrid
+
+- name: Enable locale
+  lineinfile:
+    path: /etc/locale.gen
+    regexp: '^#en_US.UTF-8 UTF-8'
+    line: 'en_US.UTF-8 UTF-8'
+
+- name: Generate locale
+  command: locale-gen
+
+- name: Update /etc/hosts
+  blockinfile:
+    path: /etc/hosts
+    block: |
+      192.168.8.11 arch01.home arch01
+      192.168.8.12 arch02.home arch02
+      192.168.8.13 arch03.home arch03
+
+
