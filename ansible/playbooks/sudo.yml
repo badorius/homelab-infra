@@ -1,0 +1,12 @@
+- name: Enable passwordless sudo for darthv
+  hosts: arch
+  become: true
+  tasks:
+
+    - name: Allow darthv passwordless sudo
+      lineinfile:
+        path: /etc/sudoers.d/darthv
+        create: yes
+        mode: '0440'
+        line: 'darthv ALL=(ALL) NOPASSWD: ALL'
+

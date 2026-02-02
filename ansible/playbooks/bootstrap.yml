@@ -1,0 +1,6 @@
+- name: Bootstrap Arch Servers
+  hosts: arch
+  become: true
+  roles:
+    - base
+
