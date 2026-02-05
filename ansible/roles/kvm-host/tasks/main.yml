@@ -1,0 +1,43 @@
+- name: Install KVM packages
+  pacman:
+    name:
+      - qemu-full
+      - libvirt
+      - virt-install
+      - dnsmasq
+      - edk2-ovmf
+      - iptables-nft
+    state: present
+
+- name: Enable libvirtd
+  systemd:
+    name: libvirtd
+    enabled: true
+    state: started
+
+- name: Add darthv to libvirt group
+  user:
+    name: darthv
+    groups: libvirt
+    append: yes
+
+- name: Ensure bridge directory exists
+  file:
+    path: /etc/systemd/network
+    state: directory
+
+- name: Install bridge netdev
+  template:
+    src: br0.netdev.j2
+    dest: /etc/systemd/network/br0.netdev
+
+- name: Install bridge network
+  template:
+    src: br0.network.j2
+    dest: /etc/systemd/network/br0.network
+
+- name: Restart systemd-networkd
+  systemd:
+    name: systemd-networkd
+    state: restarted
+

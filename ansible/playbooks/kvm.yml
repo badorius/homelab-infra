@@ -1,0 +1,6 @@
+- name: Configure KVM host
+  hosts: arch
+  become: true
+  roles:
+    - kvm-host
+
