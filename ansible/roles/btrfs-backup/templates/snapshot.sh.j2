@@ -1,0 +1,9 @@
+#!/bin/bash
+DATE=$(date +%F)
+SNAP_DIR="/.snapshots"
+SNAP_NAME="root-$DATE"
+
+mkdir -p $SNAP_DIR
+
+btrfs subvolume snapshot -r / $SNAP_DIR/$SNAP_NAME
+
