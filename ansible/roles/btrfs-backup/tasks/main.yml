@@ -1,0 +1,43 @@
+- name: Ensure snapshot directory exists
+  file:
+    path: /.snapshots
+    state: directory
+    mode: '0755'
+
+- name: Install backup scripts
+  template:
+    src: "{{ item.src }}"
+    dest: "{{ item.dest }}"
+    mode: '0755'
+  loop:
+    - { src: 'snapshot.sh.j2', dest: '/usr/local/bin/btrfs-snapshot.sh' }
+    - { src: 'send.sh.j2', dest: '/usr/local/bin/btrfs-send.sh' }
+
+- name: Install systemd services
+  template:
+    src: "{{ item.src }}"
+    dest: "/etc/systemd/system/{{ item.dest }}"
+  loop:
+    - { src: 'snapshot.service.j2', dest: 'btrfs-snapshot.service' }
+    - { src: 'send.service.j2', dest: 'btrfs-send.service' }
+
+- name: Install systemd timers
+  template:
+    src: "{{ item.src }}"
+    dest: "/etc/systemd/system/{{ item.dest }}"
+  loop:
+    - { src: 'snapshot.timer.j2', dest: 'btrfs-snapshot.timer' }
+    - { src: 'send.timer.j2', dest: 'btrfs-send.timer' }
+
+- name: Reload systemd
+  command: systemctl daemon-reload
+
+- name: Enable timers
+  systemd:
+    name: "{{ item }}"
+    enabled: true
+    state: started
+  loop:
+    - btrfs-snapshot.timer
+    - btrfs-send.timer
+

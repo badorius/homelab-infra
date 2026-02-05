@@ -1,0 +1,6 @@
+- name: Configure BTRFS backups
+  hosts: arch
+  become: true
+  roles:
+    - btrfs-backup
+

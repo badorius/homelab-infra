@@ -1,0 +1,13 @@
+#!/bin/bash
+SNAP_DIR="/.snapshots"
+LATEST=$(ls -1 $SNAP_DIR | sort | tail -n1)
+
+if [ -z "$LATEST" ]; then
+  echo "No snapshots found"
+  exit 1
+fi
+
+btrfs send "$SNAP_DIR/$LATEST" | \
+ssh darthv@openmediavault \
+"sudo btrfs receive /srv/dev-disk-by-uuid-c1739375-47b6-4818-80ec-5048a25ecc0a/btrfs-backups/{{ inventory_hostname }}"
+
