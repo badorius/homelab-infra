@@ -25,8 +25,12 @@
 
 - name: Create disks
   command: >
-    qemu-img create -f qcow2 -b /var/lib/libvirt/base/ubuntu.img
-    /var/lib/libvirt/images/{{ item }}.qcow2 20G
+    qemu-img create
+    -f qcow2
+    -F qcow2
+    -b /var/lib/libvirt/base/ubuntu.img
+    /var/lib/libvirt/images/{{ item }}.qcow2
+    20G
   args:
     creates: "/var/lib/libvirt/images/{{ item }}.qcow2"
   loop: "{{ vm_list }}"
