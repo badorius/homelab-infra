@@ -43,7 +43,7 @@
 
 - name: Render cloud-init user-data
   template:
-    src: user-data.j2
+    src: "{{ 'user-data-mgmt.j2' if item == 'mgmt' else 'user-data.j2' }}"
     dest: "/var/lib/libvirt/seed/{{ item }}/user-data"
   loop: "{{ vm_list }}"
 
