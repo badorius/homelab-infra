@@ -1,12 +1,11 @@
 - name: Install KVM packages
   pacman:
     name:
-      - qemu-full
+      - qemu-base
       - libvirt
       - virt-install
       - dnsmasq
       - edk2-ovmf
-      - iptables-nft
     state: present
 
 - name: Enable libvirtd
