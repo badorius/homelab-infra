@@ -1,0 +1,30 @@
+- name: Prepare OMV as BTRFS target
+  hosts: omv
+  become: true
+  tasks:
+
+    - name: Install btrfs tools
+      apt:
+        name: btrfs-progs
+        state: present
+        update_cache: yes
+
+    - name: Create backup root
+      file:
+        path: /srv/dev-disk-by-uuid-c1739375-47b6-4818-80ec-5048a25ecc0a/btrfs-backups
+        state: directory
+        owner: darthv
+        group: users 
+        mode: '0755'
+
+    - name: Create host folders
+      file:
+        path: "/srv/dev-disk-by-uuid-c1739375-47b6-4818-80ec-5048a25ecc0a/btrfs-backups/{{ item }}"
+        state: directory
+        owner: darthv
+        group: users 
+      loop:
+        - arch01
+        - arch02
+        - arch03
+
