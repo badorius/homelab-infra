@@ -1,0 +1,27 @@
+---
+
+- name: Install remote prune script
+  template:
+    src: prune-remote.sh.j2
+    dest: /usr/local/bin/btrfs-prune-remote.sh
+    mode: '0755'
+
+- name: Install remote prune service
+  template:
+    src: prune-remote.service.j2
+    dest: /etc/systemd/system/btrfs-prune-remote.service
+
+- name: Install remote prune timer
+  template:
+    src: prune-remote.timer.j2
+    dest: /etc/systemd/system/btrfs-prune-remote.timer
+
+- name: Reload systemd
+  command: systemctl daemon-reload
+
+- name: Enable and start remote prune timer
+  systemd:
+    name: btrfs-prune-remote.timer
+    enabled: true
+    state: started
+

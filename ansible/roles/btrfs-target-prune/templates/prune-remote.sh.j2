@@ -1,0 +1,23 @@
+#!/bin/bash
+
+BASE="/srv/dev-disk-by-uuid-c1739375-47b6-4818-80ec-5048a25ecc0a/btrfs-backups"
+KEEP=14
+
+echo "Starting remote BTRFS prune..."
+
+for HOST in $(ls $BASE); do
+  echo "Pruning $HOST..."
+  cd "$BASE/$HOST" || continue
+
+  COUNT=0
+  for SNAP in $(ls -1t); do
+    COUNT=$((COUNT+1))
+    if [ $COUNT -gt $KEEP ]; then
+      echo "Deleting $SNAP"
+      btrfs subvolume delete "$BASE/$HOST/$SNAP"
+    fi
+  done
+done
+
+echo "Remote prune finished."
+
