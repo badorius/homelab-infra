@@ -1,43 +1,97 @@
+---
+
 - name: Ensure snapshot directory exists
   file:
     path: /.snapshots
     state: directory
     mode: '0755'
 
-- name: Install backup scripts
+# ---------------------------
+# Scripts
+# ---------------------------
+
+- name: Install snapshot script
   template:
-    src: "{{ item.src }}"
-    dest: "{{ item.dest }}"
+    src: snapshot.sh.j2
+    dest: /usr/local/bin/btrfs-snapshot.sh
     mode: '0755'
-  loop:
-    - { src: 'snapshot.sh.j2', dest: '/usr/local/bin/btrfs-snapshot.sh' }
-    - { src: 'send.sh.j2', dest: '/usr/local/bin/btrfs-send.sh' }
 
-- name: Install systemd services
+- name: Install send script
   template:
-    src: "{{ item.src }}"
-    dest: "/etc/systemd/system/{{ item.dest }}"
-  loop:
-    - { src: 'snapshot.service.j2', dest: 'btrfs-snapshot.service' }
-    - { src: 'send.service.j2', dest: 'btrfs-send.service' }
+    src: send.sh.j2
+    dest: /usr/local/bin/btrfs-send.sh
+    mode: '0755'
 
-- name: Install systemd timers
+- name: Install prune script
   template:
-    src: "{{ item.src }}"
-    dest: "/etc/systemd/system/{{ item.dest }}"
-  loop:
-    - { src: 'snapshot.timer.j2', dest: 'btrfs-snapshot.timer' }
-    - { src: 'send.timer.j2', dest: 'btrfs-send.timer' }
+    src: prune.sh.j2
+    dest: /usr/local/bin/btrfs-prune.sh
+    mode: '0755'
+
+# ---------------------------
+# Systemd Services
+# ---------------------------
+
+- name: Install snapshot service
+  template:
+    src: snapshot.service.j2
+    dest: /etc/systemd/system/btrfs-snapshot.service
+
+- name: Install send service
+  template:
+    src: send.service.j2
+    dest: /etc/systemd/system/btrfs-send.service
+
+- name: Install prune service
+  template:
+    src: prune.service.j2
+    dest: /etc/systemd/system/btrfs-prune.service
+
+# ---------------------------
+# Systemd Timers
+# ---------------------------
+
+- name: Install snapshot timer
+  template:
+    src: snapshot.timer.j2
+    dest: /etc/systemd/system/btrfs-snapshot.timer
+
+- name: Install send timer
+  template:
+    src: send.timer.j2
+    dest: /etc/systemd/system/btrfs-send.timer
+
+- name: Install prune timer
+  template:
+    src: prune.timer.j2
+    dest: /etc/systemd/system/btrfs-prune.timer
+
+# ---------------------------
+# Reload systemd
+# ---------------------------
 
 - name: Reload systemd
   command: systemctl daemon-reload
 
-- name: Enable timers
+# ---------------------------
+# Enable timers
+# ---------------------------
+
+- name: Enable and start snapshot timer
   systemd:
-    name: "{{ item }}"
+    name: btrfs-snapshot.timer
     enabled: true
     state: started
-  loop:
-    - btrfs-snapshot.timer
-    - btrfs-send.timer
+
+- name: Enable and start send timer
+  systemd:
+    name: btrfs-send.timer
+    enabled: true
+    state: started
+
+- name: Enable and start prune timer
+  systemd:
+    name: btrfs-prune.timer
+    enabled: true
+    state: started
 

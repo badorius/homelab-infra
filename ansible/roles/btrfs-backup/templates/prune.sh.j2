@@ -1,0 +1,20 @@
+#!/bin/bash
+
+SNAP_DIR="/.snapshots"
+KEEP=7
+
+echo "Pruning local snapshots..."
+
+cd $SNAP_DIR || exit 1
+
+SNAPS=$(ls -1t)
+
+COUNT=0
+for SNAP in $SNAPS; do
+  COUNT=$((COUNT+1))
+  if [ $COUNT -gt $KEEP ]; then
+    echo "Deleting $SNAP"
+    btrfs subvolume delete "$SNAP_DIR/$SNAP"
+  fi
+done
+
