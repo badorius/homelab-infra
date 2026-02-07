@@ -1,0 +1,6 @@
+- name: Create infrastructure VM
+  hosts: arch01
+  become: true
+  roles:
+    - infra-vm
+

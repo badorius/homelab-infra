@@ -6,6 +6,7 @@
       - virt-install
       - dnsmasq
       - edk2-ovmf
+      - cloud-image-utils
     state: present
 
 - name: Enable libvirtd

@@ -1,0 +1,25 @@
+---
+
+- name: Ensure libvirtd is running
+  systemd:
+    name: libvirtd
+    enabled: true
+    state: started
+
+- name: Check if default network exists
+  command: virsh net-info default
+  register: net_check
+  ignore_errors: true
+  changed_when: false
+
+- name: Define default network if missing
+  command: virsh net-define /usr/share/libvirt/networks/default.xml
+  when: net_check.rc != 0
+
+- name: Start default network
+  command: virsh net-start default
+  ignore_errors: true
+
+- name: Enable autostart for default network
+  command: virsh net-autostart default
+

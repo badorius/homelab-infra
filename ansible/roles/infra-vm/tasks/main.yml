@@ -1,0 +1,33 @@
+---
+
+- name: Ensure ISO directory exists
+  file:
+    path: /var/lib/libvirt/isos
+    state: directory
+
+- name: Download Arch ISO
+  get_url:
+    url: https://mirror.rackspace.com/archlinux/iso/latest/archlinux-x86_64.iso
+    dest: /var/lib/libvirt/isos/arch.iso
+    mode: '0644'
+
+- name: Create VM disk
+  command: >
+    qemu-img create -f qcow2
+    /var/lib/libvirt/images/infra.qcow2
+    20G
+  args:
+    creates: /var/lib/libvirt/images/infra.qcow2
+
+- name: Define VM
+  template:
+    src: vm.xml.j2
+    dest: /tmp/infra.xml
+
+- name: Register VM
+  command: virsh define /tmp/infra.xml
+
+- name: Start VM
+  command: virsh start infra
+  ignore_errors: true
+

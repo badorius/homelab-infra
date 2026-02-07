@@ -1,0 +1,15 @@
+- name: Create Cloud VMs
+  hosts: arch01
+  become: true
+
+  vars:
+    vm_list:
+      - vm01
+      - vm02
+      - vm03
+
+    ssh_public_key: "{{ lookup('file', '~/.ssh/id_ed25519.pub') }}"
+
+  roles:
+    - cloud-vms
+
