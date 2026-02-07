@@ -1,0 +1,77 @@
+---
+
+- name: Ensure directories
+  file:
+    path: "{{ item }}"
+    state: directory
+  loop:
+    - /var/lib/libvirt/images
+    - /var/lib/libvirt/seed
+    - /var/lib/libvirt/base
+
+# -------------------------
+# Download base image
+# -------------------------
+
+- name: Download Ubuntu Cloud Image
+  get_url:
+    url: https://cloud-images.ubuntu.com/jammy/current/jammy-server-cloudimg-amd64.img
+    dest: /var/lib/libvirt/base/ubuntu.img
+    mode: '0644'
+
+# -------------------------
+# Create VMs
+# -------------------------
+
+- name: Create disks
+  command: >
+    qemu-img create -f qcow2 -b /var/lib/libvirt/base/ubuntu.img
+    /var/lib/libvirt/images/{{ item }}.qcow2 20G
+  args:
+    creates: "/var/lib/libvirt/images/{{ item }}.qcow2"
+  loop: "{{ vm_list }}"
+
+- name: Create seed dirs
+  file:
+    path: "/var/lib/libvirt/seed/{{ item }}"
+    state: directory
+  loop: "{{ vm_list }}"
+
+- name: Render cloud-init user-data
+  template:
+    src: user-data.j2
+    dest: "/var/lib/libvirt/seed/{{ item }}/user-data"
+  loop: "{{ vm_list }}"
+
+- name: Render cloud-init meta-data
+  template:
+    src: meta-data.j2
+    dest: "/var/lib/libvirt/seed/{{ item }}/meta-data"
+  loop: "{{ vm_list }}"
+
+- name: Create cloud-init ISO
+  command: >
+    cloud-localds
+    /var/lib/libvirt/seed/{{ item }}.iso
+    /var/lib/libvirt/seed/{{ item }}/user-data
+    /var/lib/libvirt/seed/{{ item }}/meta-data
+  args:
+    creates: "/var/lib/libvirt/seed/{{ item }}.iso"
+  loop: "{{ vm_list }}"
+
+- name: Render VM XML
+  template:
+    src: vm.xml.j2
+    dest: "/tmp/{{ item }}.xml"
+  loop: "{{ vm_list }}"
+
+- name: Define VMs
+  command: "virsh define /tmp/{{ item }}.xml"
+  loop: "{{ vm_list }}"
+  ignore_errors: true
+
+- name: Start VMs
+  command: "virsh start {{ item }}"
+  loop: "{{ vm_list }}"
+  ignore_errors: true
+
