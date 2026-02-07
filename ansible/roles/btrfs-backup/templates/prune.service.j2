@@ -1,0 +1,7 @@
+[Unit]
+Description=BTRFS Snapshot Prune
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/btrfs-prune.sh
+
