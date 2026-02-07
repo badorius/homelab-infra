@@ -1,0 +1,6 @@
+- name: Configure BTRFS remote prune on OMV
+  hosts: omv
+  become: true
+  roles:
+    - btrfs-target-prune
+
