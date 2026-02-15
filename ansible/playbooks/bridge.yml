@@ -1,0 +1,6 @@
+- name: Configure bridge networking
+  hosts: arch
+  become: true
+  roles:
+    - bridge-network
+

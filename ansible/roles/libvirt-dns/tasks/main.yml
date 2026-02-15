@@ -1,0 +1,31 @@
+- name: Get current DHCP leases
+  command: virsh net-dhcp-leases default
+  register: dhcp_leases
+
+- name: Extract lease lines (ignore header)
+  set_fact:
+    vm_lines: "{{ dhcp_leases.stdout_lines[2:] }}"
+
+- name: Init parsed leases
+  set_fact:
+    parsed_leases: []
+
+- name: Parse leases
+  set_fact:
+    parsed_leases: "{{ parsed_leases + [ {
+      'mac': (item | regex_search(\"([0-9a-f:]{17})\")),
+      'ip': (item | regex_search(\"([0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+)\")),
+      'name': (item.split()[-2])
+    } ] }}"
+  loop: "{{ vm_lines }}"
+  when: item | length > 0
+
+- name: Add static DHCP entries
+  command: >
+    virsh net-update default add ip-dhcp-host
+    "<host mac='{{ item.mac }}' name='{{ item.name }}' ip='{{ item.ip }}'/>"
+    --live --config
+  loop: "{{ parsed_leases }}"
+  when: parsed_leases | length > 0
+  ignore_errors: true
+
