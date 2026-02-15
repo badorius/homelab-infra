@@ -1,0 +1,13 @@
+- name: Create Management VM
+  hosts: arch01
+  become: true
+
+  vars:
+    vm_list:
+      - mgmt
+
+    ssh_public_key: "{{ lookup('file', '~/.ssh/id_rsa.pub') }}"
+
+  roles:
+    - cloud-vms
+

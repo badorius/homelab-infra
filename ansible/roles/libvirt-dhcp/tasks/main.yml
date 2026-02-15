@@ -1,0 +1,15 @@
+- name: Add static DHCP entries to libvirt
+  command: >
+    virsh net-update default add ip-dhcp-host
+    "<host mac='{{ item.mac }}' name='{{ item.name }}' ip='{{ item.ip }}'/>"
+    --live --config
+  loop:
+    - { mac: "52:54:00:9f:28:af", name: "vm01", ip: "192.168.122.51" }
+    - { mac: "52:54:00:36:b9:dd", name: "vm02", ip: "192.168.122.203" }
+    - { mac: "52:54:00:f3:72:90", name: "vm03", ip: "192.168.122.105" }
+    - { mac: "52:54:00:84:39:e6", name: "mgmt", ip: "192.168.122.169" }
+  register: dhcp_result
+  failed_when: false
+  changed_when: "'already exists' not in dhcp_result.stderr"
+  become: true
+

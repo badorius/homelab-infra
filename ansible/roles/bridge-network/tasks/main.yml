@@ -1,0 +1,37 @@
+- name: Install systemd-networkd (ensure enabled)
+  systemd:
+    name: systemd-networkd
+    enabled: true
+    state: started
+
+- name: Create br0.netdev
+  copy:
+    dest: /etc/systemd/network/br0.netdev
+    content: |
+      [NetDev]
+      Name=br0
+      Kind=bridge
+  notify: restart network
+
+- name: Create br0.network
+  copy:
+    dest: /etc/systemd/network/br0.network
+    content: |
+      [Match]
+      Name=br0
+
+      [Network]
+      DHCP=yes
+  notify: restart network
+
+- name: Attach interface to bridge
+  copy:
+    dest: /etc/systemd/network/enp1s0.network
+    content: |
+      [Match]
+      Name=enp1s0
+
+      [Network]
+      Bridge=br0
+  notify: restart network
+

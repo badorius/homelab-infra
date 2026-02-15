@@ -1,0 +1,13 @@
+- name: Ensure /etc/hosts entries for lab VMs
+  lineinfile:
+    path: /etc/hosts
+    line: "{{ item.ip }} {{ item.name }}"
+    state: present
+    create: yes
+  loop:
+    - { ip: "192.168.122.51",  name: "vm01" }
+    - { ip: "192.168.122.203", name: "vm02" }
+    - { ip: "192.168.122.105", name: "vm03" }
+    - { ip: "192.168.122.169", name: "mgmt" }
+  become: true
+

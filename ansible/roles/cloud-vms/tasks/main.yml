@@ -1,9 +1,12 @@
 ---
-
+# -------------------------
+# Directories
+# -------------------------
 - name: Ensure directories
   file:
     path: "{{ item }}"
     state: directory
+    mode: '0755'
   loop:
     - /var/lib/libvirt/images
     - /var/lib/libvirt/seed
@@ -12,70 +15,102 @@
 # -------------------------
 # Download base image
 # -------------------------
-
 - name: Download Ubuntu Cloud Image
   get_url:
-    url: https://cloud-images.ubuntu.com/jammy/current/jammy-server-cloudimg-amd64.img
+    url: "https://cloud-images.ubuntu.com/jammy/current/jammy-server-cloudimg-amd64.img"
     dest: /var/lib/libvirt/base/ubuntu.img
     mode: '0644'
 
 # -------------------------
-# Create VMs
+# Create disks
 # -------------------------
-
 - name: Create disks
   command: >
-    qemu-img create
-    -f qcow2
-    -F qcow2
+    qemu-img create -f qcow2 -F qcow2
     -b /var/lib/libvirt/base/ubuntu.img
-    /var/lib/libvirt/images/{{ item }}.qcow2
-    20G
+    /var/lib/libvirt/images/{{ vm.name }}.qcow2 20G
   args:
-    creates: "/var/lib/libvirt/images/{{ item }}.qcow2"
+    creates: "/var/lib/libvirt/images/{{ vm.name }}.qcow2"
   loop: "{{ vm_list }}"
+  loop_control:
+    loop_var: vm
 
+# -------------------------
+# Seed dirs
+# -------------------------
 - name: Create seed dirs
   file:
-    path: "/var/lib/libvirt/seed/{{ item }}"
+    path: "/var/lib/libvirt/seed/{{ vm.name }}"
     state: directory
   loop: "{{ vm_list }}"
+  loop_control:
+    loop_var: vm
 
+# -------------------------
+# cloud-init user-data
+# -------------------------
 - name: Render cloud-init user-data
   template:
-    src: "{{ 'user-data-mgmt.j2' if item == 'mgmt' else 'user-data.j2' }}"
-    dest: "/var/lib/libvirt/seed/{{ item }}/user-data"
+    src: user-data.j2
+    dest: "/var/lib/libvirt/seed/{{ vm.name }}/user-data"
   loop: "{{ vm_list }}"
+  loop_control:
+    loop_var: vm
 
+# -------------------------
+# cloud-init meta-data
+# -------------------------
 - name: Render cloud-init meta-data
   template:
     src: meta-data.j2
-    dest: "/var/lib/libvirt/seed/{{ item }}/meta-data"
+    dest: "/var/lib/libvirt/seed/{{ vm.name }}/meta-data"
   loop: "{{ vm_list }}"
+  loop_control:
+    loop_var: vm
 
+# -------------------------
+# Create ISO
+# -------------------------
 - name: Create cloud-init ISO
   command: >
     cloud-localds
-    /var/lib/libvirt/seed/{{ item }}.iso
-    /var/lib/libvirt/seed/{{ item }}/user-data
-    /var/lib/libvirt/seed/{{ item }}/meta-data
+    /var/lib/libvirt/seed/{{ vm.name }}.iso
+    /var/lib/libvirt/seed/{{ vm.name }}/user-data
+    /var/lib/libvirt/seed/{{ vm.name }}/meta-data
   args:
-    creates: "/var/lib/libvirt/seed/{{ item }}.iso"
+    creates: "/var/lib/libvirt/seed/{{ vm.name }}.iso"
   loop: "{{ vm_list }}"
+  loop_control:
+    loop_var: vm
 
+# -------------------------
+# Render XML
+# -------------------------
 - name: Render VM XML
   template:
     src: vm.xml.j2
-    dest: "/tmp/{{ item }}.xml"
+    dest: "/tmp/{{ vm.name }}.xml"
   loop: "{{ vm_list }}"
+  loop_control:
+    loop_var: vm
 
-- name: Define VMs
-  command: "virsh define /tmp/{{ item }}.xml"
+# -------------------------
+# Define VM
+# -------------------------
+- name: Define VM
+  command: virsh define /tmp/{{ vm.name }}.xml
   loop: "{{ vm_list }}"
+  loop_control:
+    loop_var: vm
   ignore_errors: true
 
-- name: Start VMs
-  command: "virsh start {{ item }}"
+# -------------------------
+# Start VM
+# -------------------------
+- name: Start VM
+  command: virsh start {{ vm.name }}
   loop: "{{ vm_list }}"
+  loop_control:
+    loop_var: vm
   ignore_errors: true
 

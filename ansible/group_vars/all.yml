@@ -1,0 +1,10 @@
+vm_list:
+  - name: vm01
+    mac: "52:54:00:aa:bb:01"
+  - name: vm02
+    mac: "52:54:00:aa:bb:02"
+  - name: vm03
+    mac: "52:54:00:aa:bb:03"
+  - name: mgmt
+    mac: "52:54:00:aa:bb:04"
+
