@@ -1,0 +1,88 @@
+---
+- name: Bootstrap Management VM
+  hosts: mgmt
+  become: true
+
+  vars:
+    mgmt_user: darthv
+    mgmt_home: "/home/{{ mgmt_user }}"
+    ssh_key_path: "{{ mgmt_home }}/.ssh/id_ed25519"
+    repo_url: "git@github.com:TU_USUARIO/homelab-infra.git"
+    repo_dest: "/opt/homelab-infra"
+
+  tasks:
+
+    # -------------------------
+    # Base packages
+    # -------------------------
+    - name: Update apt cache
+      apt:
+        update_cache: yes
+        cache_valid_time: 3600
+
+    - name: Install base packages
+      apt:
+        name:
+          - git
+          - python3
+          - python3-pip
+          - python3-venv
+          - openssh-client
+        state: present
+
+    # -------------------------
+    # SSH directory
+    # -------------------------
+    - name: Ensure .ssh directory
+      file:
+        path: "{{ mgmt_home }}/.ssh"
+        state: directory
+        owner: "{{ mgmt_user }}"
+        group: "{{ mgmt_user }}"
+        mode: "0700"
+
+    # -------------------------
+    # SSH Key (AHORA SÍ IDEMPOTENTE)
+    # -------------------------
+    - name: Generate SSH key if not exists
+      ansible.builtin.openssh_keypair:
+        path: "{{ ssh_key_path }}"
+        type: ed25519
+        mode: "0600"
+      become_user: "{{ mgmt_user }}"
+
+    # -------------------------
+    # Read public key
+    # -------------------------
+    - name: Read public key
+      slurp:
+        src: "{{ ssh_key_path }}.pub"
+      register: mgmt_pubkey
+      become_user: "{{ mgmt_user }}"
+
+    - name: Show public key
+      debug:
+        msg: "{{ mgmt_pubkey.content | b64decode }}"
+
+    # -------------------------
+    # Ensure /opt
+    # -------------------------
+    - name: Ensure /opt exists
+      file:
+        path: /opt
+        state: directory
+        mode: "0755"
+
+    # -------------------------
+    # Clone repo
+    # -------------------------
+    - name: Clone homelab repo
+      git:
+        repo: "{{ repo_url }}"
+        dest: "{{ repo_dest }}"
+        version: main
+        accept_hostkey: yes
+        update: yes
+      become_user: "{{ mgmt_user }}"
+      ignore_errors: true
+
