@@ -28,6 +28,7 @@
           - python3-pip
           - python3-venv
           - openssh-client
+          - ansible-core
         state: present
 
     # -------------------------
