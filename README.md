@@ -36,7 +36,7 @@ Mini PCs (Arch Linux)
 - Host backups with BTRFS incremental send
 - Automated VM creation with Cloud-Init
 - SSH key based access only
-- No passwords
+- No passwords.
 - Fully declarative infrastructure
 
 ---
