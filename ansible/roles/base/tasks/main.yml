@@ -21,6 +21,7 @@
       - btrfs-progs
       - chrony
       - bind
+      - python-six
     state: present
 
 - name: Enable chrony
