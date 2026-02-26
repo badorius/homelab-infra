@@ -48,4 +48,3 @@ git clone https://github.com/badorius/homelab-infra.git
 cd ansible
 ansible-playbook playbooks/bootstrap.yml
 ```
-.
