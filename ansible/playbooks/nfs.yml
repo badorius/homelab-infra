@@ -1,6 +1,0 @@
-- name: Configure NFS client on Arch nodes
-  hosts: arch
-  become: true
-  roles:
-    - nfs-client
-

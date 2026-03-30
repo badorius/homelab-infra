@@ -1,6 +1,0 @@
-- name: Common system configuration
-  hosts: arch
-  become: true
-  roles:
-    - common
-

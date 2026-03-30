@@ -1,6 +1,0 @@
-- name: Configure libvirt static DHCP
-  hosts: arch01
-  become: true
-  roles:
-    - libvirt-dhcp
-

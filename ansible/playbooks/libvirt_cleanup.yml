@@ -1,31 +1,34 @@
+---
 - name: Cleanup libvirt VMs and reset network
-  hosts: arch01
+  hosts: arch
   become: true
-
-  vars:
-    vm_names:
-      - vm01
-      - vm02
-      - vm03
-      - mgmt
 
   tasks:
 
     - name: Destroy VMs if running
-      command: "virsh destroy {{ item }}"
-      loop: "{{ vm_names }}"
+      command: "virsh destroy {{ vm.name }}"
+      loop: "{{ vm_list }}"
+      loop_control:
+        loop_var: vm
+      when: vm.target_host == inventory_hostname
       ignore_errors: true
 
     - name: Undefine VMs
-      command: "virsh undefine {{ item }}"
-      loop: "{{ vm_names }}"
+      command: "virsh undefine {{ vm.name }}"
+      loop: "{{ vm_list }}"
+      loop_control:
+        loop_var: vm
+      when: vm.target_host == inventory_hostname
       ignore_errors: true
 
     - name: Remove VM disks
       file:
-        path: "/var/lib/libvirt/images/{{ item }}.qcow2"
+        path: "/var/lib/libvirt/images/{{ vm.name }}.qcow2"
         state: absent
-      loop: "{{ vm_names }}"
+      loop: "{{ vm_list }}"
+      loop_control:
+        loop_var: vm
+      when: vm.target_host == inventory_hostname
 
     - name: Destroy default network
       command: virsh net-destroy default
@@ -33,4 +36,3 @@
 
     - name: Start default network
       command: virsh net-start default
-

@@ -1,6 +1,0 @@
-- name: Configure libvirt network
-  hosts: arch
-  become: true
-  roles:
-    - libvirt-network
-

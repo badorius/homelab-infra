@@ -1,0 +1,9 @@
+---
+- name: Setting up infrastructure
+  import_playbook: playbooks/setup_hosts.yml
+
+- name: Setting up backups
+  import_playbook: playbooks/setup_backups.yml
+
+- name: Provisioning Virtual Machines
+  import_playbook: playbooks/setup_vms.yml
