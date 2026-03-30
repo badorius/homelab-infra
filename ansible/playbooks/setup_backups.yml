@@ -1,14 +1,16 @@
+---
 - name: Prepare OMV as BTRFS target
   hosts: omv
   become: true
+  roles:
+    - btrfs-target-prune
   tasks:
-
     - name: Install btrfs tools
       apt:
         name: btrfs-progs
         state: present
         update_cache: yes
-
+        
     - name: Create backup root
       file:
         path: /srv/dev-disk-by-uuid-c1739375-47b6-4818-80ec-5048a25ecc0a/btrfs-backups
@@ -28,3 +30,8 @@
         - arch02
         - arch03
 
+- name: Configure BTRFS backups on Arch
+  hosts: arch
+  become: true
+  roles:
+    - btrfs-backup

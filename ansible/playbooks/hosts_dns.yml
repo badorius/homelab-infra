@@ -1,6 +1,0 @@
-- name: Configure /etc/hosts DNS
-  hosts: all
-  become: true
-  roles:
-    - hosts-dns
-

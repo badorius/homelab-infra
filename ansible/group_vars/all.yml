@@ -1,10 +1,10 @@
 vm_list:
   - name: vm01
     mac: "52:54:00:aa:bb:01"
+    target_host: arch01
   - name: vm02
     mac: "52:54:00:aa:bb:02"
+    target_host: arch02
   - name: vm03
     mac: "52:54:00:aa:bb:03"
-  - name: mgmt
-    mac: "52:54:00:aa:bb:04"
-
+    target_host: arch03

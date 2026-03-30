@@ -1,5 +1,0 @@
-- hosts: arch01
-  tasks:
-    - debug:
-        msg: "Deprecated"
-

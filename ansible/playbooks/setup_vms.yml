@@ -1,14 +1,8 @@
+---
 - name: Create and start cloud VMs
-  hosts: arch01
+  hosts: arch
   become: true
-
   vars:
-    #ssh_public_key: "{{ lookup('file', lookup('env','HOME') + '/.ssh/id_rsa.pub') }}"
     ssh_public_key: "{{ lookup('file', '~/.ssh/id_rsa.pub') }}"
-
-  vars_files:
-    - ../group_vars/all.yml
-
   roles:
     - role: cloud-vms
-

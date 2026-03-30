@@ -1,8 +1,8 @@
-- name: Enable passwordless sudo for darthv
+---
+- name: Setup Arch Linux Hosts
   hosts: arch
   become: true
   tasks:
-
     - name: Allow darthv passwordless sudo
       lineinfile:
         path: /etc/sudoers.d/darthv
@@ -10,3 +10,12 @@
         mode: '0440'
         line: 'darthv ALL=(ALL) NOPASSWD: ALL'
 
+  roles:
+    - base
+    - common
+    - hosts-dns
+    - nfs-client
+    - kvm-host
+    - bridge-network
+    - libvirt-network
+    - libvirt-dhcp
