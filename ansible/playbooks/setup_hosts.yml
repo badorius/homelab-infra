@@ -13,9 +13,7 @@
   roles:
     - base
     - common
-    - hosts-dns
     - nfs-client
     - kvm-host
     - bridge-network
     - libvirt-network
-    - libvirt-dhcp

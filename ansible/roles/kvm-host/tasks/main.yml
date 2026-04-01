@@ -9,6 +9,16 @@
       - cloud-image-utils
     state: present
 
+- name: Load the tun module
+  modprobe:
+    name: tun
+    state: present
+
+- name: Ensure tun module loads on boot
+  copy:
+    dest: /etc/modules-load.d/tun.conf
+    content: "tun\n"
+
 - name: Enable libvirtd
   systemd:
     name: libvirtd

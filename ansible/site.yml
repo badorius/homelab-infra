@@ -5,5 +5,9 @@
 - name: Setting up backups
   import_playbook: playbooks/setup_backups.yml
 
+
 - name: Provisioning Virtual Machines
   import_playbook: playbooks/setup_vms.yml
+
+- name: Setup Kubernetes Cluster
+  import_playbook: playbooks/setup_k3s.yml
