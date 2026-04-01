@@ -6,45 +6,48 @@ Declarative homelab infrastructure using:
 - Ansible Automation
 - BTRFS Snapshots & Incremental Backups
 - Libvirt Virtualization
-- Cloud-Init VMs
-- Future Kubernetes (k3s)
+- Cloud-Init Ubuntu VMs
+- Kubernetes (k3s) Cluster
 
 ---
 
 ## Objective
 
-Create a fully reproducible, automated, and resilient homelab
-environment where hosts and virtual machines can be destroyed
-and recreated at any time without data loss.
+Create a fully reproducible, automated, and resilient homelab environment where baremetal hosts and virtual machines can be destroyed and recreated at any time without data loss. The infrastructure provisions a fully functional Kubernetes (K3s) cluster on top of the underlying virtualization layer.
 
 ---
 
 ## Architecture Overview
-```
+```text
 Mini PCs (Arch Linux)
 ├─ BTRFS Snapshots
-├─ Ansible
-├─ Libvirt
-│ └─ Cloud VMs
-└─ Backup → OpenMediaVault
+├─ Ansible Deployment Agent
+├─ Libvirt / KVM
+│  ├─ Bridged Networking (br0)
+│  └─ Cloud-Init Ubuntu VMs (vm01, vm02, vm03)
+│     └─ Kubernetes (K3s) Cluster
+└─ Backup & Storage → OpenMediaVault (NFS/BTRFS)
 ```
 
 ---
 
 ## Key Features
 
-- Host backups with BTRFS incremental send
-- Automated VM creation with Cloud-Init
-- SSH key based access only
-- No passwords.
-- Fully declarative infrastructure
+- Host backups with BTRFS incremental send to remote Target
+- Fully declarative Ansible Infrastructure replacing fragmented manual steps.
+- Automated VM creation mapped locally with Cloud-Init templates
+- SSH key-based access only (No passwords)
+- Zero-touch K3s High-Availability Deployment
 
 ---
 
 ## Quick Start
+Ensure your inventory variables in `ansible/inventory/hosts.yml` match your network topology (DHCP reservations).
 
-```
+```bash
 git clone https://github.com/badorius/homelab-infra.git 
-cd ansible
-ansible-playbook playbooks/bootstrap.yml
+cd homelab-infra/ansible
+
+# Deploy bare-metal hypervisors, automated backups, provision VMs, and install the K3s cluster:
+ansible-playbook -i inventory/hosts.yml site.yml
 ```

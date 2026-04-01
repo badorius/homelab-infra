@@ -1,3 +1,4 @@
 ansible/files/id_ed25519_mgmt
 .git/
 /home/darthv/git/badorius/homelab-infra/ansible/playbooks/files
+k3s.yaml
