@@ -1,0 +1,30 @@
+---
+- name: Ensure helm is installed on the control plane
+  shell: curl -fsSL https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
+  args:
+    creates: /usr/local/bin/helm
+
+- name: Add nfs-subdir-external-provisioner helm repository
+  shell: helm repo add nfs-subdir-external-provisioner https://kubernetes-sigs.github.io/nfs-subdir-external-provisioner/
+  environment:
+    KUBECONFIG: /etc/rancher/k3s/k3s.yaml
+  register: helm_repo_add
+  changed_when: "'already exists' not in helm_repo_add.stderr"
+
+- name: Update helm repositories
+  shell: helm repo update
+  environment:
+    KUBECONFIG: /etc/rancher/k3s/k3s.yaml
+
+- name: Install nfs-subdir-external-provisioner
+  shell: >
+    helm upgrade --install nfs-subdir-external-provisioner nfs-subdir-external-provisioner/nfs-subdir-external-provisioner
+    --set nfs.server=192.168.8.15
+    --set nfs.path=/share
+    --set storageClass.name=nfs-client
+    --set storageClass.defaultClass=true
+    --namespace nfs-provisioner --create-namespace
+  environment:
+    KUBECONFIG: /etc/rancher/k3s/k3s.yaml
+  register: helm_install
+  changed_when: "'already exists' not in helm_install.stdout"
