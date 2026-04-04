@@ -17,8 +17,9 @@ This project follows a layered architecture:
 - NAT internal network
 - Cloud-Init VMs
 
-## Layer 4 – Services (Future)
-- k3s
-- Reverse proxy
-- Monitoring
+## Layer 4 – Services (Active)
+- Kubernetes (k3s) 
+- Reverse Proxy (Traefik)
+- Internal DNS over OpenWrt router
+- Monitoring (Future)
 

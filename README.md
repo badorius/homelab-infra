@@ -7,7 +7,7 @@ Declarative homelab infrastructure using:
 - BTRFS Snapshots & Incremental Backups
 - Libvirt Virtualization
 - Cloud-Init Ubuntu VMs
-- Kubernetes (k3s) Cluster
+- Kubernetes (k3s) Active Cluster
 
 ---
 
@@ -38,6 +38,8 @@ Mini PCs (Arch Linux)
 - Automated VM creation mapped locally with Cloud-Init templates
 - SSH key-based access only (No passwords)
 - Zero-touch K3s High-Availability Deployment
+- Internal DNS over OpenWrt (`*.home` domains)
+- Centralized maintenance playbooks for updates and reboots
 
 ---
 
@@ -50,4 +52,13 @@ cd homelab-infra/ansible
 
 # Deploy bare-metal hypervisors, automated backups, provision VMs, and install the K3s cluster:
 ansible-playbook -i inventory/hosts.yml site.yml
+```
+
+## Infrastructure Maintenance
+
+Use the maintenance playbooks to update and reboot all non-network infrastructure:
+
+```bash
+cd ansible
+ansible-playbook playbooks/maintenance/update_reboot.yml
 ```
