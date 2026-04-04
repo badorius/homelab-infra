@@ -13,5 +13,6 @@ Ubuntu Cloud Image (LTS)
 2. Create qcow2 disk
 3. Generate cloud-init ISO
 4. Define VM
-5. Start VM
+5. Enable Autostart
+6. Start VM
 
