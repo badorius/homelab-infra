@@ -24,6 +24,10 @@ data:
             icon: kubernetes
             href: http://192.168.8.248:6443
             description: Control Plane
+        - Grafana:
+            icon: grafana
+            href: http://grafana.home
+            description: Cluster Monitoring
   widgets.yaml: |
     - search:
         provider: google
