@@ -8,6 +8,8 @@ Declarative homelab infrastructure using:
 - Libvirt Virtualization
 - Cloud-Init Ubuntu VMs
 - Kubernetes (k3s) Active Cluster
+- Prometheus & Grafana Monitoring
+- NFS Persistent Storage
 
 ---
 
@@ -40,6 +42,8 @@ Mini PCs (Arch Linux)
 - Zero-touch K3s High-Availability Deployment
 - Internal DNS over OpenWrt (`*.home` domains)
 - Centralized maintenance playbooks for updates and reboots
+- Unified monitoring dashboard via Grafana
+- Persistent storage for k8s workloads via NFS
 
 ---
 
@@ -62,3 +66,17 @@ Use the maintenance playbooks to update and reboot all non-network infrastructur
 cd ansible
 ansible-playbook playbooks/maintenance/update_reboot.yml
 ```
+
+---
+
+## Service Endpoints
+
+Once the infrastructure is deployed, the following services are available via Traefik:
+
+| Service | Endpoint | Description |
+| ------- | -------- | ----------- |
+| Homepage | [http://homepage.home](http://homepage.home) | Infrastructure Overview |
+| Grafana | [http://grafana.home](http://grafana.home) | Cluster Monitoring |
+
+> [!NOTE]
+> DNS resolution depends on the OpenWrt router configuration managed via Ansible.

@@ -18,8 +18,9 @@ This project follows a layered architecture:
 - Cloud-Init VMs
 
 ## Layer 4 – Services (Active)
-- Kubernetes (k3s) 
+- Kubernetes (k3s)
 - Reverse Proxy (Traefik)
 - Internal DNS over OpenWrt router
-- Monitoring (Future)
+- Monitoring (Prometheus & Grafana)
+- Persistence (NFS Subdir Provisioner)
 
