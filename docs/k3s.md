@@ -1,10 +1,14 @@
-# k3s (Future)
+# Kubernetes (k3s)
 
-Planned lightweight Kubernetes cluster
-running inside cloud VMs.
+Active lightweight Kubernetes cluster
+running inside cloud VMs (vm01, vm02, vm03).
 
-Goals:
+Current Ingress:
+- Traefik (Default)
+- Homepage at `homepage.home`
+
+Features:
 - Immutable services
-- Node replacement instead of upgrade
-- Containerized workloads
+- Automated host updates & reboots
+- Unified DNS via OpenWrt
 

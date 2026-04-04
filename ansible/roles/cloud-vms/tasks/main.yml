@@ -112,6 +112,17 @@
   ignore_errors: true
 
 # -------------------------
+# Autostart VM
+# -------------------------
+- name: Enable VM autostart
+  command: virsh autostart {{ vm.name }}
+  loop: "{{ vm_list }}"
+  loop_control:
+    loop_var: vm
+  when: vm.target_host == inventory_hostname
+  ignore_errors: true
+
+# -------------------------
 # Start VM
 # -------------------------
 - name: Start VM
