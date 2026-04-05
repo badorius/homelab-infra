@@ -1,0 +1,7 @@
+---
+- name: Configure Network Infrastructure
+  hosts: network
+  gather_facts: false
+  become: false
+  roles:
+    - openwrt-dns

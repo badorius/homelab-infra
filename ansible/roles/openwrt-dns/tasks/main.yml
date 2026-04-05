@@ -1,0 +1,22 @@
+---
+- name: Set static DNS entries for lab services (using raw)
+  raw: |
+    # Clean up old entries if they exist
+    while uci show dhcp | grep -q "domain.{{ item.name }}"; do
+      INDEX=$(uci show dhcp | grep "domain.{{ item.name }}" | cut -d'[' -f2 | cut -d']' -f1)
+      uci delete dhcp.@domain[$INDEX]
+    done
+    
+    # Add new entry
+    uci add dhcp domain
+    uci set dhcp.@domain[-1].name="{{ item.name }}"
+    uci set dhcp.@domain[-1].ip="{{ item.ip }}"
+    uci commit dhcp
+    /etc/init.d/dnsmasq restart
+  loop:
+    - { name: "homepage.home", ip: "192.168.8.248" }
+    - { name: "grafana.home",  ip: "192.168.8.248" }
+    - { name: "openmediavault.home", ip: "192.168.8.15" }
+    - { name: "minio.home", ip: "192.168.8.15" }
+  register: raw_result
+  changed_when: true
