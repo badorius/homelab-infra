@@ -19,6 +19,11 @@ data:
             icon: minio
             href: https://openmediavault.home:9001
             description: Object Storage
+    - Downloads:
+        - qBittorrent:
+            icon: qbittorrent
+            href: http://qbittorrent.home
+            description: Torrent Client
     - Cluster:
         - K3s:
             icon: kubernetes
