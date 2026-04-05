@@ -35,3 +35,9 @@
   become: true
   roles:
     - btrfs-backup
+
+- name: Configure K3s ETCD backups on Master
+  hosts: k3s_master
+  become: true
+  roles:
+    - k3s-backup

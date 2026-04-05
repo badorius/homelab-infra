@@ -5,5 +5,34 @@ SNAP_NAME="root-$DATE"
 
 mkdir -p $SNAP_DIR
 
+# ---------------------------------------------------------
+# VM Quiescing for Consistency (Libvirt)
+# ---------------------------------------------------------
+RUNNING_VMS=$(virsh list --name --state-running)
+
+echo "Freezing filesystems for running VMs: $RUNNING_VMS"
+for VM in $RUNNING_VMS; do
+    # Attempt to freeze using qemu-guest-agent
+    virsh domfsfreeze $VM > /dev/null 2>&1
+    if [ $? -ne 0 ]; then
+        echo "Guest agent not available for $VM, suspending instead..."
+        virsh suspend $VM > /dev/null 2>&1
+    fi
+done
+
+# ---------------------------------------------------------
+# Perform Atomic BTRFS Snapshot
+# ---------------------------------------------------------
 btrfs subvolume snapshot -r / $SNAP_DIR/$SNAP_NAME
 
+# ---------------------------------------------------------
+# Thaw/Resume VMs
+# ---------------------------------------------------------
+for VM in $RUNNING_VMS; do
+    # Try to thaw (if it was frozen)
+    virsh domfsthaw $VM > /dev/null 2>&1
+    # Try to resume (if it was suspended)
+    virsh resume $VM > /dev/null 2>&1
+done
+
+echo "Snapshot $SNAP_NAME created successfully."
