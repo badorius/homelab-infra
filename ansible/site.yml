@@ -1,4 +1,7 @@
 ---
+- name: Configure Network Infrastructure
+  import_playbook: playbooks/setup_network.yml
+
 - name: Setting up infrastructure
   import_playbook: playbooks/setup_hosts.yml
 
