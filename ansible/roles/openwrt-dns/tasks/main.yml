@@ -18,5 +18,6 @@
     - { name: "grafana.home",  ip: "192.168.8.248" }
     - { name: "openmediavault.home", ip: "192.168.8.15" }
     - { name: "minio.home", ip: "192.168.8.15" }
+    - { name: "qbittorrent.home", ip: "192.168.8.248" }
   register: raw_result
   changed_when: true

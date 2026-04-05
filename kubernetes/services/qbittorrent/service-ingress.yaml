@@ -1,0 +1,41 @@
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: qbittorrent
+  namespace: media
+spec:
+  ports:
+    - port: 80
+      targetPort: 8080
+      name: http
+    - port: 6881
+      targetPort: 6881
+      protocol: TCP
+      name: bittorrent-tcp
+    - port: 6881
+      targetPort: 6881
+      protocol: UDP
+      name: bittorrent-udp
+  selector:
+    app: qbittorrent
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: qbittorrent
+  namespace: media
+  annotations:
+    kubernetes.io/ingress.class: traefik
+spec:
+  rules:
+    - host: qbittorrent.home
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: qbittorrent
+                port:
+                  number: 80
