@@ -1,0 +1,82 @@
+---
+- name: Install nfs-common and sqlite3 (Debian)
+  apt:
+    name:
+      - nfs-common
+      - sqlite3
+    state: present
+    update_cache: yes
+  when: ansible_os_family == "Debian"
+
+- name: Install nfs-utils and sqlite3 (Arch)
+  pacman:
+    name:
+      - nfs-utils
+      - sqlite3
+    state: present
+  when: ansible_os_family == "Archlinux"
+
+- name: Create backup mount point
+  file:
+    path: /mnt/k3s-backups
+    state: directory
+    mode: '0755'
+
+- name: Mount OMV backup share
+  mount:
+    path: /mnt/k3s-backups
+    src: "192.168.8.15:/share/k8s"
+    fstype: nfs4
+    opts: rw,relatime,vers=4.2
+    state: mounted
+
+- name: Create K3s database backup script
+  copy:
+    dest: /usr/local/bin/k3s-db-backup.sh
+    mode: '0755'
+    content: |
+      #!/bin/bash
+      DATE=$(date +%F-%H%M)
+      BACKUP_DIR="/mnt/k3s-backups/db"
+      DB_FILE="/var/lib/rancher/k3s/server/db/state.db"
+
+      mkdir -p $BACKUP_DIR
+
+      echo "Starting K3s SQLite backup on master..."
+      sqlite3 $DB_FILE ".backup $BACKUP_DIR/k3s-db-backup-$DATE.db"
+
+      # Prune old backups (keep 30 days on NAS)
+      find $BACKUP_DIR -name "k3s-db-backup-*" -mtime +30 -delete
+
+- name: Create systemd service for K3s backup
+  copy:
+    dest: /etc/systemd/system/k3s-db-backup.service
+    content: |
+      [Unit]
+      Description=K3s SQLite Backup to NAS
+      After=network.target
+
+      [Service]
+      Type=oneshot
+      ExecStart=/usr/local/bin/k3s-db-backup.sh
+
+- name: Create systemd timer for K3s backup
+  copy:
+    dest: /etc/systemd/system/k3s-db-backup.timer
+    content: |
+      [Unit]
+      Description=Daily K3s SQLite Backup Timer
+
+      [Timer]
+      OnCalendar=*-*-* 04:00:00
+      Persistent=true
+
+      [Install]
+      WantedBy=timers.target
+
+- name: Reload systemd and enable timer
+  systemd:
+    name: k3s-db-backup.timer
+    daemon_reload: yes
+    enabled: yes
+    state: started
