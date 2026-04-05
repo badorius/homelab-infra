@@ -1,0 +1,38 @@
+---
+- name: Deploy Monitoring Agents for Linux Hosts
+  hosts: arch,omv
+  gather_facts: yes
+  become: true
+  roles:
+    - monitoring-agents
+
+- name: Deploy Monitoring Agents for Network Devices
+  hosts: network
+  gather_facts: false
+  become: false
+  roles:
+    - monitoring-agents
+
+- name: Update K3s Monitoring Configuration
+  hosts: k3s_master
+  become: true
+  tasks:
+    - name: Ensure kubernetes service directory exists
+      file:
+        path: /var/lib/rancher/k3s/monitoring
+        state: directory
+        mode: '0755'
+
+    - name: Copy prometheus values to master
+      copy:
+        src: ../../kubernetes/services/monitoring/values.yaml
+        dest: /var/lib/rancher/k3s/monitoring/values.yaml
+        mode: '0644'
+
+    - name: Upgrade Prometheus Helm release
+      shell: >
+        KUBECONFIG=/etc/rancher/k3s/k3s.yaml helm upgrade prometheus prometheus-community/kube-prometheus-stack
+        -n monitoring
+        -f /var/lib/rancher/k3s/monitoring/values.yaml
+      register: helm_upgrade
+      changed_when: "'deployed' in helm_upgrade.stdout or 'upgraded' in helm_upgrade.stdout"

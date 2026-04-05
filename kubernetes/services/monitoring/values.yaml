@@ -10,6 +10,17 @@ prometheus:
           resources:
             requests:
               storage: 10Gi
+    additionalScrapeConfigs:
+      - job_name: 'external-nodes'
+        static_configs:
+          - targets:
+              - '192.168.8.11:9100'
+              - '192.168.8.12:9100'
+              - '192.168.8.13:9100'
+              - '192.168.8.15:9100'
+              - '192.168.8.253:9100'
+            labels:
+              group: 'physical-infrastructure'
 
 grafana:
   enabled: true
