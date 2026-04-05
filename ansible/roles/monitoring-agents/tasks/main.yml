@@ -1,0 +1,38 @@
+---
+# Arch Linux Node Exporter
+- name: Install node-exporter on Arch Linux
+  pacman:
+    name: prometheus-node-exporter
+    state: present
+  when: (ansible_os_family | default('unknown')) == "Archlinux"
+
+- name: Enable and start node-exporter on Arch Linux
+  systemd:
+    name: prometheus-node-exporter
+    state: started
+    enabled: yes
+  when: (ansible_os_family | default('unknown')) == "Archlinux"
+
+# OMV (Debian) Node Exporter
+- name: Install node-exporter on OpenMediaVault
+  apt:
+    name: prometheus-node-exporter
+    state: present
+    update_cache: yes
+  when: (ansible_os_family | default('unknown')) == "Debian"
+
+- name: Enable and start node-exporter on OpenMediaVault
+  systemd:
+    name: prometheus-node-exporter
+    state: started
+    enabled: yes
+  when: (ansible_os_family | default('unknown')) == "Debian"
+
+# OpenWrt Node Exporter (Lua)
+- name: Install prometheus-node-exporter-lua on OpenWrt (using raw)
+  raw: |
+    opkg update
+    opkg install prometheus-node-exporter-lua
+    /etc/init.d/prometheus-node-exporter-lua enable
+    /etc/init.d/prometheus-node-exporter-lua start
+  when: "'network' in group_names"
