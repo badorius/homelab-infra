@@ -77,6 +77,7 @@ Once the infrastructure is deployed, the following services are available via Tr
 | ------- | -------- | ----------- |
 | Homepage | [http://homepage.home](http://homepage.home) | Infrastructure Overview |
 | Grafana | [http://grafana.home](http://grafana.home) | Cluster Monitoring |
+| qBittorrent | [http://qbittorrent.home](http://qbittorrent.home) | Media Downloads |
 
 > [!NOTE]
 > DNS resolution depends on the OpenWrt router configuration managed via Ansible.
