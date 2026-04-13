@@ -23,7 +23,10 @@ helmCharts:
           server:
             DOMAIN: gitea.home
             ROOT_URL: "https://gitea.home/"
+      postgresql-ha:
+        enabled: false
       postgresql:
+        enabled: true
         global:
           storageClass: nfs-client
       redis-cluster:
