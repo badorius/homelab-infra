@@ -28,7 +28,9 @@ helmCharts:
       postgresql:
         enabled: true
         image:
-          tag: "16"
+          registry: docker.io
+          repository: bitnami/postgresql
+          tag: "latest"
         global:
           storageClass: nfs-client
       redis-cluster:
