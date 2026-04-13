@@ -1,0 +1,41 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: woodpecker
+
+resources:
+  - namespace.yaml
+
+helmCharts:
+  - name: woodpecker
+    repo: https://woodpecker-ci.org/
+    version: 1.5.0
+    releaseName: woodpecker
+    namespace: woodpecker
+    valuesInline:
+      server:
+        env:
+          WOODPECKER_HOST: "https://ci.home"
+          WOODPECKER_GITEA: "true"
+          WOODPECKER_GITEA_URL: "https://gitea.home"
+          WOODPECKER_ADMIN: "admin"
+        extraSecretNamesForEnvFrom:
+          - woodpecker-server-secret
+        ingress:
+          enabled: true
+          className: traefik
+          annotations:
+            cert-manager.io/cluster-issuer: homelab-ca
+          hosts:
+            - host: ci.home
+              paths:
+                - path: /
+          tls:
+            - hosts:
+                - ci.home
+              secretName: woodpecker-tls
+      agent:
+        env:
+          WOODPECKER_SERVER: "woodpecker-server:9000"
+        extraSecretNamesForEnvFrom:
+          - woodpecker-agent-secret
