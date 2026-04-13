@@ -55,3 +55,11 @@ helmCharts:
         enabled: true
         storageClass: nfs-client
         size: 10Gi
+patches:
+  - target:
+      kind: StatefulSet
+      name: gitea-postgresql
+    patch: |-
+      - op: replace
+        path: /spec/template/spec/containers/0/image
+        value: "docker.io/bitnami/postgresql:latest"
