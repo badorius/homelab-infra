@@ -28,8 +28,13 @@ grafana:
     enabled: true
     annotations:
       kubernetes.io/ingress.class: traefik
+      cert-manager.io/cluster-issuer: homelab-ca
     hosts:
       - grafana.home
+    tls:
+      - secretName: grafana-tls
+        hosts:
+          - grafana.home
     path: /
   persistence:
     enabled: true
