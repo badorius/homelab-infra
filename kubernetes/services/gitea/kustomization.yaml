@@ -12,6 +12,9 @@ helmCharts:
     version: 10.1.4
     releaseName: gitea
     namespace: gitea
+    apiVersions:
+      - networking.k8s.io/v1/Ingress
+      - networking.k8s.io/v1
     valuesInline:
       gitea:
         admin:
