@@ -28,9 +28,9 @@ helmCharts:
       postgresql:
         enabled: true
         image:
-          registry: docker.io
+          registry: public.ecr.aws
           repository: bitnami/postgresql
-          tag: "latest"
+          tag: "16.2.0"
         global:
           storageClass: nfs-client
       redis-cluster:
@@ -55,11 +55,3 @@ helmCharts:
         enabled: true
         storageClass: nfs-client
         size: 10Gi
-patches:
-  - target:
-      kind: StatefulSet
-      name: gitea-postgresql
-    patch: |-
-      - op: replace
-        path: /spec/template/spec/containers/0/image
-        value: "docker.io/bitnami/postgresql:latest"
