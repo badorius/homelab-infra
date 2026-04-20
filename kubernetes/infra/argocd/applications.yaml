@@ -54,3 +54,22 @@ spec:
     automated:
       prune: true
       selfHeal: true
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: sewbase
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: 'https://gitea.home/gitea_admin/sewbase_guitea.git'
+    targetRevision: HEAD
+    path: infra/k8s/sewbase
+  destination:
+    server: 'https://kubernetes.default.svc'
+    namespace: sewbase
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
