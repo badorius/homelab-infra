@@ -1,160 +1,154 @@
 # Homelab Infrastructure
 
-Declarative homelab infrastructure using:
-
-- Arch Linux Hosts
-- Ansible Automation
-- BTRFS Snapshots & Incremental Backups
-- Libvirt Virtualization
-- Cloud-Init Ubuntu VMs
-- Kubernetes (k3s) Active Cluster
-- Prometheus & Grafana Monitoring
-- NFS Persistent Storage
-- **GitOps CI/CD Pipeline (ArgoCD, Gitea, Woodpecker, Harbor)**
+Declarative, reproducible homelab using Ansible + K3s + GitOps. Everything is code. Destroy and recreate at any time.
 
 ---
 
-## Objective
+## Architecture at a glance
 
-Create a fully reproducible, automated, and resilient homelab environment where baremetal hosts and virtual machines can be destroyed and recreated at any time without data loss. The infrastructure provisions a fully functional Kubernetes (K3s) cluster on top of the underlying virtualization layer.
-
----
-
-## Architecture Overview
-```text
-Mini PCs (Arch Linux)
-├─ BTRFS Snapshots
-├─ Ansible Deployment Agent
-├─ Libvirt / KVM
-│  ├─ Bridged Networking (br0)
-│  └─ Cloud-Init Ubuntu VMs (vm01, vm02, vm03)
-│     └─ Kubernetes (K3s) Cluster
-└─ Backup & Storage → OpenMediaVault (NFS/BTRFS)
+```
+Physical Layer    3× Arch Linux mini PCs (arch01/02/03)
+      │           BTRFS filesystem + systemd backup timers → OMV NAS
+      ▼
+Virtualization    KVM/libvirt, bridged networking (br0)
+      │           3 Ubuntu 22.04 VMs (vm01/02/03), one per host
+      ▼
+Kubernetes        K3s cluster — vm01 master, vm02+vm03 workers
+      │           Traefik ingress, cert-manager TLS, nfs-client storage
+      ▼
+GitOps            ArgoCD watches github.com/badorius/homelab-infra
+      │           Gitea (private repos) + Woodpecker CI + Harbor registry
+      ▼
+Apps              Grafana · Homepage · Calibre-Web · qBittorrent · Sewbase
 ```
 
----
-
-## Key Features
-
-- Host backups with BTRFS incremental send to remote Target
-- Fully declarative Ansible Infrastructure replacing fragmented manual steps.
-- Automated VM creation mapped locally with Cloud-Init templates
-- SSH key-based access only (No passwords)
-- Zero-touch K3s High-Availability Deployment
-- Internal DNS over OpenWrt (`*.home` domains)
-- Centralized maintenance playbooks for updates and reboots
-- Unified monitoring dashboard via Grafana
-- Persistent storage for k8s workloads via NFS
-- **Fully Automated GitOps Deployment tracking this repository via ArgoCD**
-
----
-
-## Quick Start (Base Infrastructure)
-Ensure your inventory variables in `ansible/inventory/hosts.yml` match your network topology (DHCP reservations).
-
-```bash
-git clone https://github.com/badorius/homelab-infra.git 
-cd homelab-infra/ansible
-
-# Deploy bare-metal hypervisors, automated backups, provision VMs, and install the K3s cluster:
-ansible-playbook -i inventory/hosts.yml site.yml
-```
-
-## GitOps Stack Deployment (CI/CD)
-
-This homelab utilizes a fully automated GitOps approach using ArgoCD. Services like Gitea (Repository), Woodpecker (CI), and Harbor (Registry) rely on Helm templates evaluated by ArgoCD dynamically. Since sensitive credentials are not stored in this Git repository, you must inject them into the cluster before bootstrapping the GitOps flow.
-
-### 1. Create the Required Namespaces
-```bash
-kubectl create namespace cert-manager
-kubectl create namespace argocd
-kubectl apply -f kubernetes/services/gitea/namespace.yaml
-kubectl apply -f kubernetes/services/woodpecker/namespace.yaml
-kubectl apply -f kubernetes/services/harbor/namespace.yaml
-```
-
-### 2. Inject Secrets
-Create the manual secrets required by the apps. Be sure to replace the placeholder strings with your actual secure passwords and OAuth credentials.
-```bash
-# Gitea Admin Password
-kubectl create secret generic gitea-admin-secret \
-  --namespace gitea \
-  --from-literal=password='your-secure-password'
-
-# Woodpecker Secrets
-kubectl create secret generic woodpecker-server-secret \
-  --namespace woodpecker \
-  --from-literal=WOODPECKER_GITEA_CLIENT='your-gitea-oauth-client-id' \
-  --from-literal=WOODPECKER_GITEA_SECRET='your-gitea-oauth-secret' \
-  --from-literal=WOODPECKER_AGENT_SECRET='your-shared-agent-hash'
-
-kubectl create secret generic woodpecker-agent-secret \
-  --namespace woodpecker \
-  --from-literal=WOODPECKER_AGENT_SECRET='your-shared-agent-hash'
-```
-*(Note: You will need to start everything, create the Woodpecker OAuth Application in Gitea's UI, and update the server secret with the real Client/Secret afterwards).*
-
-### 3. Bootstrap Core and GitOps Engine
-Deploy `cert-manager` mapping your local CA, and `ArgoCD`.
-```bash
-# Install Cert-Manager and Local CA
-kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.14.4/cert-manager.yaml
-kubectl wait --for=condition=ready pod -l app.kubernetes.io/component=webhook -n cert-manager --timeout=90s
-kubectl apply -f kubernetes/infra/cert-manager/clusterissuers.yaml
-
-# Install ArgoCD targetting our specific setup
-kubectl apply -k kubernetes/infra/argocd/
-```
-
-### 4. Deploy All the Services (App of Apps)
-Apply the meta-applications configuration. ArgoCD will synchronize to this repository and natively deploy Gitea, Woodpecker, and Harbor.
-```bash
-kubectl apply -f kubernetes/infra/argocd/applications.yaml
-```
-
-## Legacy / Extra Services Deployment
-
-For services that are not yet managed via ArgoCD (or if you prefer the standard `kubectl` approach for infrastructure services), you can deploy them manually using Kustomize:
-
-### Monitoring (Prometheus & Grafana)
-Deploys the full Kube-Prometheus stack to monitor your cluster.
-```bash
-kubectl apply -k kubernetes/services/monitoring/
-```
-
-### Homepage & Media
-Deploys the infrastructure dashboard and torrent client.
-```bash
-kubectl apply -k kubernetes/services/homepage/
-kubectl apply -k kubernetes/services/qbittorrent/
-```
-
----
-
-## Infrastructure Maintenance
-
-Use the maintenance playbooks to update and reboot all non-network infrastructure:
-
-```bash
-cd ansible
-ansible-playbook playbooks/maintenance/update_reboot.yml
-```
+Full architecture: [`docs/architecture.md`](docs/architecture.md)
 
 ---
 
 ## Service Endpoints
 
-Once the infrastructure is deployed, the following services are available via Traefik (secured via TLS by `cert-manager` for the GitOps stack):
+All `*.home` domains resolve via OpenWrt dnsmasq to `192.168.8.248` (K3s master / Traefik).
+TLS certificates are auto-issued by cert-manager using the homelab root CA.
 
-| Service | Endpoint | Description |
-| ------- | -------- | ----------- |
-| Homepage | [http://homepage.home](http://homepage.home) | Infrastructure Overview |
-| Grafana | [http://grafana.home](http://grafana.home) | Cluster Monitoring |
-| qBittorrent | [http://qbittorrent.home](http://qbittorrent.home) | Media Downloads |
-| ArgoCD | [https://argocd.home](https://argocd.home) | GitOps CD Dashboard |
-| Gitea | [https://gitea.home](https://gitea.home) | Private Code Repository |
-| Woodpecker CI | [https://ci.home](https://ci.home) | Continuous Integration |
-| Harbor Registry | [https://registry.home](https://registry.home) | Container Registry |
+| Service | URL | Notes |
+|---------|-----|-------|
+| **ArgoCD** | https://argocd.home | GitOps CD |
+| **Gitea** | https://gitea.home | Private git server |
+| **Woodpecker CI** | https://ci.home | CI pipelines (Gitea OAuth) |
+| **Harbor Registry** | https://registry.home | OCI container registry |
+| **Grafana** | https://grafana.home | Monitoring dashboards |
+| **Traefik Dashboard** | https://traefik.home | Ingress routing UI |
+| **Homepage** | https://homepage.home | Service dashboard |
+| **Calibre-Web** | https://calibre.home | eBook library |
+| **qBittorrent** | https://qbittorrent.home | Torrent downloader |
+| **Sewbase** | https://sewbase.home | Custom app (CI/CD deployed) |
+| **OpenMediaVault** | http://192.168.8.15 | NAS management (HTTP only) |
 
-> [!NOTE]
-> DNS resolution depends on the OpenWrt router configuration managed via Ansible.
+> **Browser TLS**: Import the homelab root CA into your browser.
+> `kubectl get secret root-secret -n cert-manager -o jsonpath='{.data.ca\.crt}' | base64 -d > homelab-root-ca.crt`
+
+---
+
+## Network Map
+
+| Host | IP | Role |
+|------|----|------|
+| arch01 | 192.168.8.11 | KVM hypervisor → vm01 |
+| arch02 | 192.168.8.12 | KVM hypervisor → vm02 |
+| arch03 | 192.168.8.13 | KVM hypervisor → vm03 |
+| vm01 | 192.168.8.248 | K3s master + Traefik entry point |
+| vm02 | 192.168.8.249 | K3s worker |
+| vm03 | 192.168.8.101 | K3s worker |
+| OMV NAS | 192.168.8.15 | NFS storage + BTRFS backup target |
+| Router | 192.168.8.253 | OpenWrt + dnsmasq |
+
+---
+
+## Quick Start — Fresh Deploy
+
+Full procedure: [`docs/runbooks/fresh-deploy.md`](docs/runbooks/fresh-deploy.md)
+
+```bash
+# 1. Provision physical hosts, VMs, and K3s cluster
+git clone https://github.com/badorius/homelab-infra.git
+cd homelab-infra/ansible
+ansible-playbook -i inventory/hosts.yml site.yml
+
+# 2. Bootstrap Kubernetes infrastructure
+kubectl apply -k kubernetes/infra/cert-manager/
+kubectl apply -k kubernetes/infra/argocd/
+
+# 3. Inject secrets (see fresh-deploy.md for full secret list)
+kubectl create namespace gitea
+kubectl create secret generic gitea-admin-secret -n gitea \
+  --from-literal=username=gitea_admin --from-literal=password='YOUR_PASSWORD'
+
+# 4. Deploy App-of-Apps (ArgoCD manages gitea, woodpecker, harbor, sewbase)
+kubectl apply -f kubernetes/infra/argocd/applications.yaml
+
+# 5. Manual services
+kubectl apply -k kubernetes/services/homepage/
+kubectl apply -k kubernetes/services/calibre/
+kubectl apply -k kubernetes/infra/traefik/
+```
+
+---
+
+## Repository Structure
+
+```
+homelab-infra/
+├── agents.md                   # AI agent persistent memory (read first every session)
+├── README.md                   # This file
+├── ansible/
+│   ├── site.yml                # Master playbook: network→hosts→backups→vms→k3s
+│   ├── inventory/              # hosts.yml + group_vars/all.yml (VM definitions)
+│   ├── playbooks/              # Individual playbooks
+│   └── roles/                  # base, common, kvm-host, cloud-vms, k3s, btrfs-backup, ...
+├── kubernetes/
+│   ├── infra/                  # Bootstrap infrastructure (apply once manually)
+│   │   ├── argocd/             # ArgoCD install + ingress + App-of-Apps
+│   │   ├── cert-manager/       # cert-manager Helm + homelab-ca ClusterIssuer
+│   │   └── traefik/            # Traefik dashboard (HelmChartConfig + ingress)
+│   └── services/               # Application workloads
+│       ├── gitea/              # ArgoCD-managed via Helm/Kustomize
+│       ├── woodpecker/         # ArgoCD-managed via Helm/Kustomize
+│       ├── harbor/             # ArgoCD-managed via Helm/Kustomize
+│       ├── monitoring/         # kube-prometheus-stack (Helm, Ansible-upgraded)
+│       ├── homepage/           # Manual kubectl apply -k
+│       ├── calibre/            # Manual kubectl apply -k
+│       └── qbittorrent/        # Manual kubectl apply -k
+└── docs/
+    ├── architecture.md         # Full stack explained for newcomers
+    ├── services/               # Per-service documentation
+    └── runbooks/               # Step-by-step operational procedures
+```
+
+---
+
+## Documentation Index
+
+| Document | Description |
+|----------|-------------|
+| [Architecture](docs/architecture.md) | Full stack explained from physical to GitOps |
+| [Fresh Deploy](docs/runbooks/fresh-deploy.md) | Complete from-scratch deployment guide |
+| [Add a New Service](docs/runbooks/new-service.md) | End-to-end: manifests → DNS → TLS → ArgoCD |
+| [Add a CI/CD Pipeline](docs/runbooks/new-pipeline.md) | Woodpecker pipeline setup |
+| [Secret Management](docs/runbooks/secrets.md) | Create, update and rotate secrets |
+| [Backup & Restore](docs/runbooks/backup-restore.md) | BTRFS backups + K3s ETCD recovery |
+| [K3s Operations](docs/runbooks/k3s-operations.md) | Day-2 cluster operations |
+| [Sewbase Deploy](docs/services/sewbase.md) | Sewbase app CI/CD pipeline |
+
+---
+
+## Non-Negotiable Rules
+
+1. **No secrets in this repo** — it is public. Use `kubectl create secret` at runtime.
+2. **IaC first** — every change lives in Ansible or Kubernetes manifests, never ad-hoc.
+3. **ArgoCD for managed services** — for gitea/woodpecker/harbor/sewbase: push to git, let ArgoCD sync. Never `kubectl apply` manually.
+4. **TLS on every ingress** — add `cert-manager.io/cluster-issuer: homelab-ca` annotation + `spec.ingressClassName: traefik`.
+5. **nfs-client StorageClass** — all PVCs use `storageClassName: nfs-client`.
+6. **DNS for every new domain** — add entry in `ansible/roles/openwrt-dns/tasks/main.yml` and run `setup_network.yml`.
+
+See [`agents.md`](agents.md) for AI agent context and current session state.
