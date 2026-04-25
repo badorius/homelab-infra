@@ -23,4 +23,44 @@
       192.168.8.12 arch02.home arch02
       192.168.8.13 arch03.home arch03
 
+- name: Trust Homelab Root CA (Arch Linux)
+  when: ansible_os_family == "Archlinux"
+  tags: [common, ca_trust]
+  block:
+    - name: Copy CA certificate to trust anchors
+      copy:
+        src: homelab-root-ca.crt
+        dest: /etc/ca-certificates/trust-source/anchors/homelab-root-ca.crt
+      register: arch_ca_copy
+
+    - name: Update CA trust on Arch
+      command: update-ca-trust
+      when: arch_ca_copy.changed
+
+- name: Trust Homelab Root CA (Debian/Ubuntu)
+  when: ansible_os_family == "Debian"
+  tags: [common, ca_trust]
+  block:
+    - name: Copy CA certificate to local trust store
+      copy:
+        src: homelab-root-ca.crt
+        dest: /usr/local/share/ca-certificates/homelab-root-ca.crt
+        mode: '0644'
+      register: debian_ca_copy
+
+    - name: Update CA trust on Debian/Ubuntu
+      command: update-ca-certificates
+      when: debian_ca_copy.changed
+
+- name: Restart k3s/containerd to pick up new CA
+  systemd:
+    name: "{{ item }}"
+    state: restarted
+  loop:
+    - k3s
+    - k3s-agent
+  failed_when: false
+  tags: [common, ca_trust]
+  when: (arch_ca_copy is defined and arch_ca_copy.changed) or (debian_ca_copy is defined and debian_ca_copy.changed)
+
 

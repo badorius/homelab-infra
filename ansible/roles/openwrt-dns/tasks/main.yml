@@ -23,5 +23,6 @@
     - { name: "gitea.home", ip: "192.168.8.248" }
     - { name: "ci.home", ip: "192.168.8.248" }
     - { name: "registry.home", ip: "192.168.8.248" }
+    - { name: "sewbase.home", ip: "192.168.8.248" }
   register: raw_result
   changed_when: true

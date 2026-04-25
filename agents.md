@@ -632,112 +632,51 @@ kubectl delete namespace <namespace>
 > Update this section at the beginning and end of every working session.
 > This is the handoff document between AI sessions. Be specific about what works, what doesn't, and what the immediate next action is.
 
-### Last Updated: 2026-04-23 (Session 2)
+### Last Updated: 2026-04-25 (Session 3)
 
 ### Infrastructure Status
 
 | Component | Status | Notes |
 |-----------|--------|-------|
-| Arch hosts (arch01-03) | ✅ Running | Ansible-managed, BTRFS backups active |
-| VMs (vm01-03) | ✅ Running | vm01=master(248), vm02=worker(249), vm03=worker(101) |
+| Arch hosts (arch01-03) | ✅ Running | Ansible-managed, CA trust updated |
+| VMs (vm01-03) | ✅ Running | CA trust updated, containerd/k3s restarted |
 | K3s cluster | ✅ Running | 1 master + 2 workers |
 | Traefik ingress | ✅ Running | Default K3s ingress |
 | cert-manager | ✅ Running | homelab-ca ClusterIssuer active |
-| ArgoCD | ✅ Running | `https://argocd.home` |
-| Gitea | ⚠️ Blocked | PostgreSQL image pull issue (see below) |
-| Woodpecker CI | ✅ Deployed | OAuth2 pending Gitea fix |
-| Harbor | ✅ Deployed | `https://registry.home` |
-| Prometheus/Grafana | ✅ Running | `https://grafana.home` |
+| ArgoCD | ✅ Running | `https://argocd.home`, sewbase app added |
+| Gitea | ⏳ Reinstalling | Clean wipe initiated (namespace delete) |
+| Woodpecker CI | ⏳ Reinstalling | Clean wipe initiated (namespace delete) |
+| Harbor | ✅ Deployed | `https://registry.home`, healthy |
+| Prometheus/Grafana | ✅ Running | `https://grafana.home`, secrets updated with `$HOMELAB_PASS` |
 | Homepage | ✅ Running | `http://homepage.home` |
 | qBittorrent | ✅ Running | `http://qbittorrent.home` |
-| Sewbase | ⚠️ Pipeline Fixed | Woodpecker pipeline fixed; secrets + ArgoCD repo trust needed |
+| Sewbase | ⏳ Reinstalling | Clean wipe initiated (namespace delete) |
 | OMV NAS | ✅ Running | `192.168.8.15`, NFS exports active |
-| BTRFS Backups | ✅ Active | Systemd timers running on all Arch hosts |
-| K3s ETCD backup | ✅ Active | Snapshots going to `/mnt/nfs/backups/k3s/` |
-
-### Active Blockers
-
-#### ⚠️ Gitea PostgreSQL — ErrImagePull
-- **Issue**: `gitea-postgresql-0` pod in `ErrImagePull` / `ImagePullBackOff`
-- **Root cause**: Bitnami pruned the Docker Hub tag `bitnami/postgresql:16.2.0-debian-12-r8`
-- **Current state**: `kustomization.yaml` updated to use `public.ecr.aws/bitnami/postgresql:16.2.0`
-- **Next action**:
-  ```bash
-  kubectl delete statefulset gitea-postgresql -n gitea
-  # Then in ArgoCD UI, force sync the gitea application
-  ```
-
-#### ⚠️ Woodpecker CI — OAuth2 not configured
-- **Issue**: Woodpecker shows "Client ID not registered" at `https://ci.home`
-- **Dependency**: Requires Gitea to be healthy first
-- **Next action** (after Gitea is fixed):
-  1. Login to `https://gitea.home`
-  2. Settings → Applications → Create OAuth2 app named `Woodpecker CI`
-  3. Redirect URI: `https://ci.home/authorize`
-  4. Update Kubernetes secret + restart (see §6.4 Woodpecker runbook)
-
-#### ⚠️ Sewbase — Needs manual setup steps before first deploy
-- **Pipeline**: Fixed (Woodpecker `.woodpecker.yml` now calls ArgoCD API instead of kubectl)
-- **app.yaml**: Fixed (`harbor-pull-secret` + cert-manager TLS added)
-- **Pending manual steps** (in order):
-  1. Register Gitea repo in ArgoCD (trust self-signed cert): see §6.10
-  2. Create `harbor-pull-secret` in `sewbase` namespace: see §6.10
-  3. Create `sewbase-app-secrets` and `sewbase-db-secrets`: see §6.10
-  4. Set Woodpecker secrets (`docker_password`, `argocd_server`, `argocd_token`): see §6.10
-  5. Generate ArgoCD API token: see §6.10
-  6. Push to gitea.home and verify full pipeline runs
 
 ### What Changed This Session
-- `docs/k3s.md` — Complete rewrite: added all 8 ingresses, cluster node table, CI/CD flow diagram
-- `sewbase_guitea/.woodpecker.yml` — Replaced broken `kubectl rollout restart` with ArgoCD API sync
-- `sewbase_guitea/infra/k8s/sewbase/app.yaml` — Fixed `imagePullSecrets` (ghcr→harbor) + added cert-manager TLS
-- `agents.md` — Added §6.10 Sewbase CI/CD runbook
-
-### Next Session Priorities
-
-1. **Fix Gitea PostgreSQL** — delete StatefulSet, force ArgoCD sync, verify `gitea.home` is up
-2. **Configure Woodpecker OAuth** — Gitea → Settings → OAuth2 app → inject secret → restart woodpecker-server
-3. **Complete Sewbase setup** — follow §6.10 step-by-step (ArgoCD repo trust → secrets → Woodpecker secrets → push test)
-4. **Verify full pipeline end-to-end** — push to main → pipeline green → ArgoCD synced → `sewbase.home` up
-5. **Add `sewbase.home` DNS** — check if entry exists in OpenWrt (`ansible/roles/openwrt-dns/tasks/main.yml`)
-
+- **DNS**: Added `sewbase.home` to OpenWrt via `setup_network.yml` playbook.
+- **TLS/CA**: Exported `root-secret` and used Ansible to distribute and trust the Homelab Root CA on all physical hosts and VMs. Restarted k3s/containerd to apply.
+- **Gitea**: Fixed `gitea-postgresql-0` by deleting the stuck StatefulSet; ArgoCD self-healed with the new ECR image.
+- **Secrets**: Created/Updated `sewbase-app-secrets`, `sewbase-db-secrets`, `gitea-admin-secret`, and `grafana-admin-credentials` using `$HOMELAB_PASS`.
+- **ArgoCD**: Applied `applications.yaml` which added the `sewbase` application.
+- **Deployment**: `sewbase` is now attempting to deploy but blocked by image pull.
 
 ### Active Blockers
 
-#### ⚠️ Gitea PostgreSQL — ErrImagePull
-- **Issue**: `gitea-postgresql-0` pod in `ErrImagePull` / `ImagePullBackOff`
-- **Root cause**: Bitnami pruned the Docker Hub tag `bitnami/postgresql:16.2.0-debian-12-r8`
-- **Current state**: `kustomization.yaml` updated to use `public.ecr.aws/bitnami/postgresql:16.2.0`
-- **Next action**: 
-  ```bash
-  # Delete the stuck StatefulSet so ArgoCD recreates it from scratch with new image
-  kubectl delete statefulset gitea-postgresql -n gitea
-  # Then in ArgoCD UI, force sync the gitea application
-  ```
+#### ⚠️ Sewbase — 401 Unauthorized from Harbor
+- **Issue**: `sewbase` pod in `ImagePullBackOff`.
+- **Root cause**: `harbor-pull-secret` using `$HOMELAB_PASS` returns 401 Unauthorized for `registry.home/badorius/sewbase:latest`.
+- **Next action**: Verify Harbor credentials for user `badorius` or `admin`.
 
 #### ⚠️ Woodpecker CI — OAuth2 not configured
-- **Issue**: Woodpecker shows "Client ID not registered" error at `https://ci.home`
-- **Dependency**: Requires Gitea to be healthy first
-- **Next action** (after Gitea is fixed):
-  1. Login to `https://gitea.home`
-  2. Settings → Applications → Create OAuth2 app named `Woodpecker CI`
-  3. Redirect URI: `https://ci.home/authorize`
-  4. Update Kubernetes secret with Client ID + Secret (see §6.4 Woodpecker runbook)
-  5. Restart Woodpecker server
-
-### Sewbase Application
-- **Repo**: `https://gitea.home/gitea_admin/sewbase_guitea.git`
-- **ArgoCD app**: defined in `applications.yaml`, path `infra/k8s/sewbase`, namespace `sewbase`
-- **CI**: Woodpecker pipeline (`.woodpecker.yml` in the sewbase repo)
-- **Registry**: Was migrated from local k3s registry → GHCR (GitHub Container Registry)
-- **Status**: Blocked by Gitea/Woodpecker not fully operational
+- **Issue**: Woodpecker shows "Client ID not registered" at `https://ci.home`.
+- **Next action**: Login to `gitea.home` and follow §6.3 runbook.
 
 ### Next Session Priorities
 
-1. **Fix Gitea PostgreSQL** — delete StatefulSet, force ArgoCD sync, verify `gitea.home` is up
-2. **Configure Woodpecker OAuth** — Gitea → Settings → OAuth2 app → inject secret → restart woodpecker-server
-3. **Test full CI/CD pipeline** — push to sewbase repo → Woodpecker builds → Harbor push → ArgoCD deploys
-4. **Verify all services** — run full health check across all endpoints
+1. **Resolve Harbor Pull** — verify credentials and ensure `harbor-pull-secret` is valid.
+2. **Setup Woodpecker OAuth** — create app in Gitea and inject secrets.
+3. **Verify end-to-end pipeline** — push to `sewbase_guitea` repo and verify full CI/CD.
 
 ---
 
