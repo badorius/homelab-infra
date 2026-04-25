@@ -1,0 +1,34 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: calibre-init-library
+  namespace: calibre
+spec:
+  ttlSecondsAfterFinished: 300
+  template:
+    spec:
+      containers:
+        - name: calibre-init
+          image: lscr.io/linuxserver/calibre:latest
+          command:
+            - /bin/sh
+            - -c
+            - |
+              calibredb add --empty --library-path /books && \
+              ls -la /books/ && \
+              echo "Library initialized successfully"
+          env:
+            - name: PUID
+              value: "1000"
+            - name: PGID
+              value: "1000"
+            - name: TZ
+              value: Europe/Madrid
+          volumeMounts:
+            - name: books
+              mountPath: /books
+      restartPolicy: Never
+      volumes:
+        - name: books
+          persistentVolumeClaim:
+            claimName: calibre-books-pvc

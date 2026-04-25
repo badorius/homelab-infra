@@ -36,11 +36,32 @@ The 50Gi books PVC is dynamically provisioned by the NFS provisioner on OMV (192
 
 ## First-Time Setup
 
-On first access to https://calibre.home, Calibre-Web will ask for the Calibre library location:
+Calibre-Web is a **frontend** for an existing Calibre library — it does not create the library itself. The `/books` PVC must contain a valid `metadata.db` before the web UI accepts the path.
 
-1. Set **Database Configuration** → Location of Calibre database: `/books`
-2. Log in with default credentials: `admin` / `admin123`
-3. Change the admin password via Admin → Edit User → admin
+### Step 1 — Initialize the Calibre library (one-time)
+
+Run the provided Kubernetes Job to create an empty library in the books PVC:
+
+```bash
+kubectl apply -f kubernetes/services/calibre/init-library-job.yaml
+kubectl logs -n calibre -l job-name=calibre-init-library -f
+```
+
+Wait until you see `Library initialized successfully`. Verify:
+
+```bash
+kubectl exec -n calibre deploy/calibre-web -- ls -la /books/
+# Should show metadata.db
+```
+
+The Job auto-deletes itself after 5 minutes (`ttlSecondsAfterFinished: 300`).
+
+### Step 2 — Configure the web UI
+
+1. Open https://calibre.home
+2. Set **Database Configuration** → Location of Calibre database: `/books`
+3. Log in with default credentials: `admin` / `admin123`
+4. Change the admin password via Admin → Edit User → admin
 
 ## Uploading Books
 
@@ -96,7 +117,8 @@ kubectl exec -n calibre deploy/calibre-web -- df -h /books /config
 | Issue | Fix |
 |-------|-----|
 | Books not appearing after upload | Trigger reconnect: Admin → Tasks → Reconnect Database |
-| Calibre-Web not starting | Check pod logs — likely the `/books` directory has no `metadata.db`. Create an empty Calibre library first via the desktop app |
+| "New db location is invalid" en setup | `/books` no tiene `metadata.db` todavía. Ejecuta `init-library-job.yaml` primero (ver First-Time Setup) |
+| Calibre-Web not starting | Check pod logs — likely the `/books` directory has no `metadata.db`. Run `init-library-job.yaml` to initialize. |
 | "Unable to connect to server" | Pod not running: `kubectl get pods -n calibre` |
 | TLS cert error in browser | Import homelab CA into browser (see cert-manager.md) |
 | Books PVC full | Expand PVC or add another volume; current limit: 50Gi |
