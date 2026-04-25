@@ -39,3 +39,12 @@ helmCharts:
           WOODPECKER_SERVER: "woodpecker-server:9000"
         extraSecretNamesForEnvFrom:
           - woodpecker-agent-secret
+        extraVolumes:
+          - name: homelab-ca
+            configMap:
+              name: homelab-ca-cert
+        extraVolumeMounts:
+          - name: homelab-ca
+            mountPath: /etc/ssl/certs/homelab-root-ca.crt
+            subPath: homelab-root-ca.crt
+            readOnly: true

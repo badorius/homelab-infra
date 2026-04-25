@@ -475,6 +475,44 @@ kubectl describe pod -n sewbase -l app=sewbase | grep -A5 Events
 ---
 
 
+### 6.11 Traefik Dashboard
+
+**URL**: `https://traefik.home`
+**Managed**: Manual (`kubectl apply -k kubernetes/infra/traefik/`)
+
+**Configuration** (`kubernetes/infra/traefik/`):
+- `helmchartconfig.yaml`: Enables `api.dashboard=true`, `api.insecure=true` (serves dashboard at port 9000)
+- `ingress.yaml`: Ingress + ClusterIP service exposing port 9000 → `traefik.home` with TLS
+
+**Notes**: Port 9000 is only accessible within the cluster. The ingress forwards HTTPS traffic to the internal port.
+
+---
+
+### 6.12 Calibre-Web
+
+**Image**: `lscr.io/linuxserver/calibre-web:latest`
+**Namespace**: `calibre`
+**URL**: `https://calibre.home`
+**Managed**: Manual (`kubectl apply -k kubernetes/services/calibre/`)
+
+**Default credentials** (first login after deploy):
+- Username: `admin`
+- Password: `admin123`
+- Set library path to `/books` when prompted
+
+**PVCs**:
+- `calibre-config-pvc`: 1Gi (nfs-client) — config, metadata DB
+- `calibre-books-pvc`: 50Gi (nfs-client) — books library
+
+**Upload books**: Copy files to the NFS path of `calibre-books-pvc` or upload via Calibre-Web UI.
+
+```bash
+# Redeploy
+kubectl apply -k kubernetes/services/calibre/
+```
+
+---
+
 ### 6.8 qBittorrent
 
 **Image**: `lscr.io/linuxserver/qbittorrent:latest`
@@ -632,51 +670,90 @@ kubectl delete namespace <namespace>
 > Update this section at the beginning and end of every working session.
 > This is the handoff document between AI sessions. Be specific about what works, what doesn't, and what the immediate next action is.
 
-### Last Updated: 2026-04-25 (Session 3)
+### Last Updated: 2026-04-25 (Session 4)
 
 ### Infrastructure Status
 
 | Component | Status | Notes |
 |-----------|--------|-------|
-| Arch hosts (arch01-03) | ✅ Running | Ansible-managed, CA trust updated |
-| VMs (vm01-03) | ✅ Running | CA trust updated, containerd/k3s restarted |
+| Arch hosts (arch01-03) | ✅ Running | Ansible-managed |
+| VMs (vm01-03) | ✅ Running | CA trusted, k3s healthy |
 | K3s cluster | ✅ Running | 1 master + 2 workers |
-| Traefik ingress | ✅ Running | Default K3s ingress |
-| cert-manager | ✅ Running | homelab-ca ClusterIssuer active |
-| ArgoCD | ✅ Running | `https://argocd.home`, sewbase app added |
-| Gitea | ⏳ Reinstalling | Clean wipe initiated (namespace delete) |
-| Woodpecker CI | ⏳ Reinstalling | Clean wipe initiated (namespace delete) |
-| Harbor | ✅ Deployed | `https://registry.home`, healthy |
-| Prometheus/Grafana | ✅ Running | `https://grafana.home`, secrets updated with `$HOMELAB_PASS` |
-| Homepage | ✅ Running | `http://homepage.home` |
-| qBittorrent | ✅ Running | `http://qbittorrent.home` |
-| Sewbase | ⏳ Reinstalling | Clean wipe initiated (namespace delete) |
+| Traefik ingress | ✅ Running | Dashboard habilitado en `https://traefik.home` |
+| cert-manager | ✅ Running | homelab-ca ClusterIssuer — todos los endpoints con TLS |
+| ArgoCD | ✅ Running | `https://argocd.home` |
+| Gitea | ✅ Running | `https://gitea.home`, usuario: `gitea_admin` |
+| Woodpecker CI | ✅ Running | `https://ci.home`, OAuth2 OK, CA montado en agentes |
+| Harbor | ✅ Running | `https://registry.home`, usuario `badorius` creado, proyecto `badorius` creado |
+| Prometheus/Grafana | ✅ Running | `https://grafana.home` — TLS habilitado (cert-manager) |
+| Homepage | ✅ Running | `https://homepage.home` |
+| qBittorrent | ✅ Running | `https://qbittorrent.home` |
+| Sewbase | ⚠️ ImagePullBackOff | Manifests OK, image no existe aún en Harbor |
+| Calibre-Web | ✅ Deployed | `https://calibre.home`, PVCs 1Gi config + 50Gi books |
 | OMV NAS | ✅ Running | `192.168.8.15`, NFS exports active |
 
-### What Changed This Session
-- **DNS**: Added `sewbase.home` to OpenWrt via `setup_network.yml` playbook.
-- **TLS/CA**: Exported `root-secret` and used Ansible to distribute and trust the Homelab Root CA on all physical hosts and VMs. Restarted k3s/containerd to apply.
-- **Gitea**: Fixed `gitea-postgresql-0` by deleting the stuck StatefulSet; ArgoCD self-healed with the new ECR image.
-- **Secrets**: Created/Updated `sewbase-app-secrets`, `sewbase-db-secrets`, `gitea-admin-secret`, and `grafana-admin-credentials` using `$HOMELAB_PASS`.
-- **ArgoCD**: Applied `applications.yaml` which added the `sewbase` application.
-- **Deployment**: `sewbase` is now attempting to deploy but blocked by image pull.
+### Contraseñas Unificadas (Session 4)
+- **NOTA**: Harbor requiere mayúscula. Excepción documentada.
+- Gitea admin: `gitea_admin` / `REDACTED`
+- Grafana: `admin` / `REDACTED`
+- Harbor admin: `admin` / `REDACTED` (política requiere mayúscula)
+- Harbor user badorius: `badorius` / `REDACTED`
+- Woodpecker agent secret: `REDACTED`
+- Sewbase DB: `sewuser` / `REDACTED`
+
+### What Changed This Session (4)
+- **Secrets**: Todos los servicios actualizados a `REDACTED` (`REDACTED` para Harbor).
+- **Harbor**: Password admin cambiada. Usuario `badorius` creado. Proyecto `badorius` creado con permisos developer.
+- **harbor-pull-secret**: Creado en namespace `sewbase` con `badorius`/`REDACTED`.
+- **TLS Grafana**: `values.yaml` actualizado con `ingressClassName: traefik` y cert-manager. Helm upgrade aplicado. Certificado `grafana-tls` activo.
+- **TLS Sewbase**: Ingress corregido con cert-manager. Certificado `sewbase-tls` activo.
+- **Traefik Dashboard**: `HelmChartConfig` aplicado (api.dashboard=true, api.insecure=true). Ingress + Service `traefik-dashboard-svc` en puerto 9000. DNS `traefik.home` añadido.
+- **Calibre-Web**: Nuevo servicio desplegado en namespace `calibre`. PVCs en nfs-client. TLS activo (`calibre-tls`). DNS `calibre.home` añadido.
+- **DNS**: Añadidos `traefik.home` y `calibre.home` en OpenWrt.
+- **Woodpecker agentes**: CA montado vía ConfigMap `homelab-ca-cert` para trusting de Harbor.
+- **sewbase_guitea**: `.woodpecker.yml` corregido (buildkit_config para CA). `app.yaml` corregido (ingressClassName). Pusheado a Gitea.
+- **Infra repo**: `kubernetes/infra/traefik/`, `kubernetes/services/calibre/` añadidos.
 
 ### Active Blockers
 
-#### ⚠️ Sewbase — 401 Unauthorized from Harbor
-- **Issue**: `sewbase` pod in `ImagePullBackOff`.
-- **Root cause**: `harbor-pull-secret` using `$HOMELAB_PASS` returns 401 Unauthorized for `registry.home/badorius/sewbase:latest`.
-- **Next action**: Verify Harbor credentials for user `badorius` or `admin`.
+#### ⚠️ Sewbase — imagen no existe en Harbor
+- **Issue**: `sewbase` pod en `ImagePullBackOff`. Harbor pull-secret OK, pero la imagen no se ha construido nunca.
+- **Root cause**: CI/CD pipeline nunca completó un build. La imagen `registry.home/badorius/sewbase:latest` no existe en Harbor.
+- **Next action (manual, requiere sudo en workstation)**:
+  ```bash
+  sudo mkdir -p /etc/docker/certs.d/registry.home
+  sudo cp /tmp/homelab-root-ca.crt /etc/docker/certs.d/registry.home/ca.crt
+  sudo systemctl restart docker
+  cd /home/darthv/git/badorius/sewbase_guitea
+  docker build -t registry.home/badorius/sewbase:latest .
+  echo "REDACTED" | docker login registry.home -u badorius --password-stdin
+  docker push registry.home/badorius/sewbase:latest
+  ```
+  Después el pod de sewbase arrancará automáticamente.
 
-#### ⚠️ Woodpecker CI — OAuth2 not configured
-- **Issue**: Woodpecker shows "Client ID not registered" at `https://ci.home`.
-- **Next action**: Login to `gitea.home` and follow §6.3 runbook.
+#### ⚠️ Woodpecker Pipeline secrets — requieren setup manual
+- **Issue**: Los secrets `docker_password`, `argocd_server`, `argocd_token` deben configurarse en la UI de Woodpecker.
+- **Next action**:
+  1. Abrir `https://ci.home` → Login con Gitea OAuth (`gitea_admin`/`REDACTED`)
+  2. Ir a **Settings → Token** → Generar personal access token
+  3. Con ese token, vía CLI (`/tmp/woodpecker-cli`):
+     ```bash
+     export WOODPECKER_SERVER=https://ci.home
+     export WOODPECKER_TOKEN=<tu-token>
+     # Secrets globales (admin)
+     /tmp/woodpecker-cli secret add --global --name docker_password --value REDACTED
+     /tmp/woodpecker-cli secret add --global --name argocd_server --value argocd.home
+     /tmp/woodpecker-cli secret add --global --name argocd_token --value <token-de-argocd>
+     ```
+  4. Token ArgoCD: `argocd account generate-token --account admin --grpc-web`
+  5. Registrar el repo sewbase_guitea en Woodpecker y activarlo
 
 ### Next Session Priorities
 
-1. **Resolve Harbor Pull** — verify credentials and ensure `harbor-pull-secret` is valid.
-2. **Setup Woodpecker OAuth** — create app in Gitea and inject secrets.
-3. **Verify end-to-end pipeline** — push to `sewbase_guitea` repo and verify full CI/CD.
+1. **Build y push imagen sewbase** — ejecutar los comandos docker del bloque anterior.
+2. **Configurar secrets Woodpecker** — login UI y crear secrets globales.
+3. **Verificar pipeline end-to-end** — push a sewbase_guitea y verificar build → Harbor → ArgoCD.
+4. **Calibre-Web** — subir librería de libros al PVC `calibre-books-pvc`.
 
 ---
 
