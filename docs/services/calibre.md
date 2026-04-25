@@ -65,32 +65,54 @@ The Job auto-deletes itself after 5 minutes (`ttlSecondsAfterFinished: 300`).
 
 ## Uploading Books
 
-### Option 1: Upload via Web UI
+### Option 1: Upload via Web UI (pocos libros)
 
-In Calibre-Web UI: Books → Upload Book (top right corner). Accepts EPUB, PDF, MOBI, etc.
+En https://calibre.home: icono de libro con `+` arriba a la derecha → Upload Book. Acepta EPUB, PDF, MOBI, CBZ, etc. Solo permite subir de uno en uno.
 
-### Option 2: Copy to the PVC directly
+### Option 2: Bulk import via calibredb (recomendado para colecciones)
 
-Find the NFS path for the books PVC:
+Este es el método usado para la importación inicial de la colección HumbleBundle (342 libros).
+Requiere `calibre` instalado en la máquina local (`pacman -S calibre` en Arch).
 
-```bash
-# Find the NFS path that was provisioned
-kubectl get pv -o wide | grep calibre-books
-
-# The NFS provisioner creates a subdir on OMV like:
-# 192.168.8.15:/share/<namespace>-<pvcname>-<pv-uid>
-
-# Copy books directly to the NFS share (from a machine with NFS access)
-rsync -av /local/books/ 192.168.8.15:/share/calibre-calibre-books-pvc-<uid>/
+**NFS path del books PVC:**
+```
+192.168.8.15:/share/calibre-calibre-books-pvc-pvc-48c38642-2271-41dc-8e59-ecb2b490566f
 ```
 
-After copying, trigger a library scan in Calibre-Web: Admin → Tasks → Reconnect Database.
+**Proceso completo:**
 
-### Option 3: Use Calibre desktop app
+```bash
+# 1. Montar el NFS (solo la primera vez, o si no está montado)
+sudo mkdir -p /mnt/calibre-books
+sudo mount -t nfs 192.168.8.15:/share/calibre-calibre-books-pvc-pvc-48c38642-2271-41dc-8e59-ecb2b490566f /mnt/calibre-books
 
-1. Point Calibre desktop to the same NFS share as a library
-2. Add books in the desktop app
-3. Calibre-Web reads from the same library path
+# 2. Parar calibre-web para liberar el lock de metadata.db
+kubectl scale deployment calibre-web -n calibre --replicas=0
+kubectl wait --for=delete pod -l app=calibre-web -n calibre --timeout=60s
+
+# 3. Importar los libros (--recurse escanea subdirectorios, los zips sin ebooks se ignoran)
+sudo calibredb add --recurse --library-path /mnt/calibre-books /ruta/a/los/libros/
+
+# 4. Levantar calibre-web
+kubectl scale deployment calibre-web -n calibre --replicas=1
+kubectl rollout status deployment calibre-web -n calibre
+
+# 5. Desmontar el NFS
+sudo umount /mnt/calibre-books
+```
+
+**Notas:**
+- Los archivos `.zip` que no contienen ebooks (code supplements) se saltan automáticamente — los errores `No ebook found in ZIP archive` son normales.
+- Los duplicados se detectan y saltan — usa `--duplicates` para añadirlos igualmente.
+- `calibredb` organiza los libros en subdirectorios por autor dentro de `/books` automáticamente.
+
+### Option 3: Calibre desktop app
+
+1. Montar el NFS en local (ver paso 1 de Option 2)
+2. Parar el pod (ver paso 2 de Option 2)
+3. Abrir Calibre desktop → Switch/create library → apuntar a `/mnt/calibre-books`
+4. Añadir, editar metadatos y convertir formatos desde el desktop
+5. Levantar el pod de nuevo (ver paso 4 de Option 2)
 
 ## Common Operations
 
