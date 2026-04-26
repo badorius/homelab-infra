@@ -757,12 +757,57 @@ kubectl delete namespace <namespace>
 - **Rules actualizadas**: §5, §11 y agents.md header — regla explícita de no hardcodear passwords.
 - **Repo estuvo seguro**: El repo se hizo privado antes de que los commits con passwords fueran pusheados al remoto.
 
+### What Changed This Session (7) — 2026-04-26
+
+- **Sewbase operativo**: `https://sewbase.home` responde HTTP 200. Root cause resuelto.
+- **Root cause sewbase error**: `secrets.example.yaml` estaba en `infra/k8s/sewbase/` — ArgoCD lo aplicaba con valores placeholder (`YOUR_PASSWORD`, `YOUR_POSTGRES_PASSWORD`) sobreescribiendo los secrets reales en cada sync.
+- **Fix**: Movido `secrets.example.yaml` a `docs/infra/` (fuera del path de ArgoCD). Pusheado a Gitea.
+- **Postgres password corregida**: Cambiada en la DB a valor real del vault. Secrets recreados con `pass-cli`.
+- **Schema aplicado manualmente**: La DB estaba vacía (0 tablas). Schema completo aplicado via `kubectl exec + psql`. Nota: hay schema drift — ver `sewbase_guitea/AGENTS.md §5`.
+- **Dockerfile mejorado**: CMD actualizado para ejecutar `prisma migrate deploy` antes de arrancar.
+- **app.yaml mejorado**: Eliminado `DATABASE_URL` duplicado (ya viene de `envFrom`). Añadido `readinessProbe`.
+- **Documentación sewbase_guitea**: Creados `CLAUDE.md`, `AGENTS.md` completo, `docs/infra/deployment.md`, `docs/infra/secrets.md`.
+- **Proton Pass**: Añadido item `sewbase-auth` (NextAuth AUTH_SECRET).
+- **sewbase-app-secrets**: Recreado con `DATABASE_URL` y `AUTH_SECRET` reales desde vault.
+- **Sewbase status**: Pod Running, schema OK, app responde 200. Woodpecker secrets pendientes.
+
+### Infrastructure Status (Session 7)
+
+| Component | Status | Notes |
+|-----------|--------|-------|
+| Arch hosts (arch01-03) | ✅ Running | Ansible-managed |
+| VMs (vm01-03) | ✅ Running | CA trusted, k3s healthy |
+| K3s cluster | ✅ Running | 1 master + 2 workers |
+| Traefik ingress | ✅ Running | `https://traefik.home` |
+| cert-manager | ✅ Running | homelab-ca — TLS en todos los endpoints |
+| ArgoCD | ✅ Running | `https://argocd.home` |
+| Gitea | ✅ Running | `https://gitea.home`, usuario: `gitea_admin` |
+| Woodpecker CI | ✅ Running | `https://ci.home`, OAuth2 OK |
+| Harbor | ✅ Running | `https://registry.home`, imagen sewbase existe |
+| Prometheus/Grafana | ✅ Running | `https://grafana.home` |
+| Homepage | ✅ Running | `https://homepage.home` |
+| qBittorrent | ✅ Running | `https://qbittorrent.home` |
+| Sewbase | ✅ Running | `https://sewbase.home` HTTP 200 |
+| Calibre-Web | ✅ Deployed | `https://calibre.home` |
+| OMV NAS | ✅ Running | `192.168.8.15`, NFS exports active |
+
+### Credenciales (Session 7)
+- **NOTA**: Todas las credenciales en Proton Pass, vault **homelab**.
+- Gitea admin: `gitea_admin` — `pass-cli item view --vault-name homelab --item-title gitea-admin --field password`
+- Grafana: `admin` — `pass-cli item view --vault-name homelab --item-title grafana-admin --field password`
+- Harbor admin: `admin` — `pass-cli item view --vault-name homelab --item-title harbor-admin --field password`
+- Harbor user badorius: `badorius` — `pass-cli item view --vault-name homelab --item-title harbor-badorius --field password`
+- Woodpecker agent secret: `pass-cli item view --vault-name homelab --item-title woodpecker-agent-secret --field password`
+- Sewbase DB: `sewuser` — `pass-cli item view --vault-name homelab --item-title sewbase-db --field password`
+- Sewbase AUTH_SECRET: `pass-cli item view --vault-name homelab --item-title sewbase-auth --field password`
+
 ### Next Session Priorities
 
-1. **Build y push imagen sewbase** — ejecutar los comandos docker del bloque anterior (usar pass-cli para el login).
-2. **Configurar secrets Woodpecker** — login UI y crear secrets globales.
-3. **Verificar pipeline end-to-end** — push a sewbase_guitea y verificar build → Harbor → ArgoCD.
-4. **Calibre-Web** — subir librería de libros al PVC `calibre-books-pvc`.
+1. **Woodpecker secrets sewbase** — configurar `docker_password`, `argocd_server`, `argocd_token` en Woodpecker UI.
+2. **Schema drift sewbase** — crear migración Prisma que reconcilie el schema actual con las columnas faltantes.
+3. **MinIO** — crear item `minio-admin` en Proton Pass vault; configurar bucket `sewbase` en OMV.
+4. **Pipeline end-to-end** — push a sewbase_guitea y verificar build → Harbor → ArgoCD.
+5. **Calibre-Web** — subir librería de libros al PVC `calibre-books-pvc`.
 
 ---
 
