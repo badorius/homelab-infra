@@ -18,9 +18,18 @@ helmCharts:
           WOODPECKER_HOST: "https://ci.home"
           WOODPECKER_GITEA: "true"
           WOODPECKER_GITEA_URL: "https://gitea.home"
-          WOODPECKER_ADMIN: "admin"
+          WOODPECKER_ADMIN: "gitea_admin"
         extraSecretNamesForEnvFrom:
           - woodpecker-server-secret
+        extraVolumes:
+          - name: homelab-ca
+            configMap:
+              name: homelab-ca-cert
+        extraVolumeMounts:
+          - name: homelab-ca
+            mountPath: /etc/ssl/certs/homelab-root-ca.crt
+            subPath: homelab-root-ca.crt
+            readOnly: true
         ingress:
           enabled: true
           className: traefik
