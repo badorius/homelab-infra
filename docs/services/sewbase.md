@@ -113,7 +113,7 @@ kubectl create secret docker-registry harbor-pull-secret \
   --namespace sewbase \
   --docker-server=registry.home \
   --docker-username=badorius \
-  --docker-password='REDACTED'
+  --docker-password="$(pass-cli item view --vault-name homelab --item-title harbor-badorius --field password)"
 ```
 
 ### 2. Register Gitea Repo in ArgoCD
@@ -143,7 +143,7 @@ sudo systemctl restart docker
 # Build and push
 cd /home/darthv/git/badorius/sewbase_guitea
 docker build -t registry.home/badorius/sewbase:latest .
-echo "REDACTED" | docker login registry.home -u badorius --password-stdin
+pass-cli item view --vault-name homelab --item-title harbor-badorius --field password | docker login registry.home -u badorius --password-stdin
 docker push registry.home/badorius/sewbase:latest
 ```
 
@@ -170,7 +170,7 @@ argocd login argocd.home --insecure --username admin \
 ARGO_TOKEN=$(argocd account generate-token --account admin --grpc-web)
 
 # Set secrets (global — available to all pipelines)
-/tmp/woodpecker-cli secret add --global --name docker_password --value 'REDACTED'
+/tmp/woodpecker-cli secret add --global --name docker_password --value "$(pass-cli item view --vault-name homelab --item-title harbor-badorius --field password)"
 /tmp/woodpecker-cli secret add --global --name argocd_server --value argocd.home
 /tmp/woodpecker-cli secret add --global --name argocd_token --value "$ARGO_TOKEN"
 ```

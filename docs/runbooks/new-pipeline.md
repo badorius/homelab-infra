@@ -172,14 +172,14 @@ Create a Harbor project for your app (if it doesn't exist):
 
 ```bash
 # Via API (Harbor admin)
-curl -k -u admin:REDACTED \
+curl -k -u admin:$(pass-cli item view --vault-name homelab --item-title harbor-admin --field password) \
   -X POST https://registry.home/api/v2.0/projects \
   -H "Content-Type: application/json" \
   -d '{"project_name":"myapp-project","public":false}'
 
 # Add badorius user to the project as Developer
 PROJ_ID=<id from above response>
-curl -k -u admin:REDACTED \
+curl -k -u admin:$(pass-cli item view --vault-name homelab --item-title harbor-admin --field password) \
   -X POST "https://registry.home/api/v2.0/projects/${PROJ_ID}/members" \
   -H "Content-Type: application/json" \
   -d '{"role_id":2,"member_user":{"username":"badorius"}}'
@@ -198,7 +198,7 @@ kubectl create secret docker-registry harbor-pull-secret \
   --namespace myapp \
   --docker-server=registry.home \
   --docker-username=badorius \
-  --docker-password='REDACTED'
+  --docker-password="$(pass-cli item view --vault-name homelab --item-title harbor-badorius --field password)"
 
 # App-specific secrets
 kubectl create secret generic myapp-secrets \
@@ -271,7 +271,7 @@ argocd login argocd.home --insecure --username admin --password '<pass>' --grpc-
 ARGOCD_TOKEN=$(argocd account generate-token --account admin --grpc-web)
 
 # Set global secrets via woodpecker-cli
-/tmp/woodpecker-cli secret add --global --name docker_password --value 'REDACTED'
+/tmp/woodpecker-cli secret add --global --name docker_password --value "$(pass-cli item view --vault-name homelab --item-title harbor-badorius --field password)"
 /tmp/woodpecker-cli secret add --global --name argocd_server --value argocd.home
 /tmp/woodpecker-cli secret add --global --name argocd_token --value "$ARGOCD_TOKEN"
 ```
@@ -298,7 +298,7 @@ Before the pipeline runs, the image must exist in Harbor at least once:
 ```bash
 cd /path/to/myapp
 docker build -t registry.home/badorius/myapp:latest .
-echo "REDACTED" | docker login registry.home -u badorius --password-stdin
+pass-cli item view --vault-name homelab --item-title harbor-badorius --field password | docker login registry.home -u badorius --password-stdin
 docker push registry.home/badorius/myapp:latest
 ```
 

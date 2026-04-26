@@ -8,12 +8,12 @@ Private OCI container registry. Woodpecker CI pushes built images here; ArgoCD p
 |----------|-------|
 | URL | https://registry.home |
 | Admin username | admin |
-| Admin password | `REDACTED` (Harbor enforces uppercase policy — cannot use `REDACTED`) |
+| Admin password | see Proton Pass vault homelab: **harbor-admin** |
 | Namespace | harbor |
 | Chart | goharbor/harbor 1.14.0 |
 | Managed by | ArgoCD (`harbor` Application) |
 
-> **Note:** Harbor's password policy requires at least one uppercase letter, one lowercase letter, and one digit. The homelab standard `REDACTED` is rejected. Use `REDACTED` for Harbor specifically.
+> **Note:** Harbor's password policy requires at least one uppercase letter, one lowercase letter, and one digit. The homelab standard password is rejected. Use the value from Proton Pass vault homelab: **harbor-admin** (which satisfies the policy).
 
 ## Architecture
 
@@ -56,28 +56,28 @@ All components fronted by Traefik at `registry.home` via Ingress + cert-manager 
 
 None required externally — Harbor manages its own database. Images are pulled from within the cluster using imagePullSecrets or via the Kubelet node credentials.
 
-For Woodpecker to push images, the `docker_password` pipeline secret must be set to `REDACTED`.
+For Woodpecker to push images, the `docker_password` pipeline secret must be set to the Harbor password for user `badorius` (see Proton Pass vault homelab: **harbor-badorius**).
 
 ## Common Operations
 
 ```bash
 # List projects via API
-curl -k -u admin:REDACTED https://registry.home/api/v2.0/projects
+curl -k -u admin:$(pass-cli item view --vault-name homelab --item-title harbor-admin --field password) https://registry.home/api/v2.0/projects
 
 # Create a new project
-curl -k -u admin:REDACTED \
+curl -k -u admin:$(pass-cli item view --vault-name homelab --item-title harbor-admin --field password) \
   -X POST https://registry.home/api/v2.0/projects \
   -H "Content-Type: application/json" \
   -d '{"project_name":"myproject","public":false}'
 
 # List repositories in a project
-curl -k -u admin:REDACTED https://registry.home/api/v2.0/projects/badorius/repositories
+curl -k -u admin:$(pass-cli item view --vault-name homelab --item-title harbor-admin --field password) https://registry.home/api/v2.0/projects/badorius/repositories
 
 # List tags for an image
-curl -k -u admin:REDACTED https://registry.home/api/v2.0/projects/badorius/repositories/sewbase/artifacts
+curl -k -u admin:$(pass-cli item view --vault-name homelab --item-title harbor-admin --field password) https://registry.home/api/v2.0/projects/badorius/repositories/sewbase/artifacts
 
 # Manual docker push (requires homelab CA trusted)
-docker login registry.home -u badorius -p 'REDACTED'
+docker login registry.home -u badorius -p "$(pass-cli item view --vault-name homelab --item-title harbor-badorius --field password)"
 docker build -t registry.home/badorius/myapp:latest .
 docker push registry.home/badorius/myapp:latest
 
@@ -124,7 +124,7 @@ settings:
 | Issue | Fix |
 |-------|-----|
 | `docker push` fails with x509 error | Trust homelab CA in Docker (`/etc/docker/certs.d/registry.home/ca.crt`) |
-| `docker push` 401 Unauthorized | Wrong password. Harbor uses `REDACTED` not `REDACTED` |
+| `docker push` 401 Unauthorized | Wrong password. Check Proton Pass vault homelab: **harbor-badorius** |
 | `docker push` 403 Forbidden | User `badorius` not in project. Add via Harbor UI → Project → Members |
 | Harbor UI shows red health | Check `kubectl get pods -n harbor` — restart stuck components |
 | Registry PVC full | Run Garbage Collection via UI, or expand PVC |

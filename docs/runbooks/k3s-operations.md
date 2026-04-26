@@ -199,7 +199,7 @@ kubectl get pv $PV_NAME -o jsonpath='{.spec.nfs.path}'
 
 ### Access Grafana
 
-`https://grafana.home` — admin / REDACTED
+`https://grafana.home` — admin / see Proton Pass vault homelab: **grafana-admin**
 
 Dashboards available:
 - Kubernetes cluster overview
@@ -336,4 +336,4 @@ argocd app sync <appname> --grpc-web
 | Gitea `CrashLoopBackOff` after restart | LevelDB lock (two pods competing) | Scale deployment to 0 then back to 1 |
 | Woodpecker "Client ID not registered" | Gitea OAuth app missing or wrong | Recreate OAuth app in Gitea, update `woodpecker-server-secret` |
 | NFS PVC stuck in `Pending` | NFS server unreachable | Check OMV is running and `192.168.8.15:/share` is accessible |
-| Harbor image push 401 | Wrong credentials | Verify `docker login registry.home -u badorius` with `REDACTED` |
+| Harbor image push 401 | Wrong credentials | Verify `docker login registry.home -u badorius` — check Proton Pass vault homelab: **harbor-badorius** |

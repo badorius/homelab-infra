@@ -67,7 +67,7 @@ Create the secret if missing:
 kubectl create secret generic grafana-admin-credentials \
   -n monitoring \
   --from-literal=admin-user=admin \
-  --from-literal=admin-password='REDACTED'
+  --from-literal=admin-password="$(pass-cli item view --vault-name homelab --item-title grafana-admin --field password)"
 ```
 
 ## Common Operations

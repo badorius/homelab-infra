@@ -7,7 +7,7 @@ CI/CD pipeline runner. Triggered by Gitea webhooks on push events.
 | Property | Value |
 |----------|-------|
 | URL | https://ci.home |
-| Auth | Gitea OAuth (login with gitea_admin / REDACTED) |
+| Auth | Gitea OAuth (login with gitea_admin — see Proton Pass vault homelab: **gitea-admin**) |
 | Namespace | woodpecker |
 | Chart | woodpecker-ci.org/woodpecker 1.5.0 |
 | Managed by | ArgoCD (`woodpecker` Application) |
@@ -42,7 +42,7 @@ These are stored in Woodpecker's database (not Kubernetes). Available to all pip
 
 | Secret name | Value | Purpose |
 |-------------|-------|---------|
-| `docker_password` | REDACTED | Push images to Harbor as `badorius` |
+| `docker_password` | see Proton Pass vault homelab: **harbor-badorius** | Push images to Harbor as `badorius` |
 | `argocd_server` | argocd.home | ArgoCD API host for deploy step |
 | `argocd_token` | (generated) | ArgoCD API Bearer token |
 
@@ -50,7 +50,7 @@ Set via:
 ```bash
 export WOODPECKER_SERVER=https://ci.home
 export WOODPECKER_TOKEN=<from-ui-settings>
-woodpecker-cli secret add --global --name docker_password --value 'REDACTED'
+woodpecker-cli secret add --global --name docker_password --value "$(pass-cli item view --vault-name homelab --item-title harbor-badorius --field password)"
 woodpecker-cli secret add --global --name argocd_server --value argocd.home
 woodpecker-cli secret add --global --name argocd_token --value '<argocd-token>'
 ```

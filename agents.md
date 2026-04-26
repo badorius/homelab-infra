@@ -692,19 +692,19 @@ kubectl delete namespace <namespace>
 | Calibre-Web | ✅ Deployed | `https://calibre.home`, PVCs 1Gi config + 50Gi books |
 | OMV NAS | ✅ Running | `192.168.8.15`, NFS exports active |
 
-### Contraseñas Unificadas (Session 4)
-- **NOTA**: Harbor requiere mayúscula. Excepción documentada.
-- Gitea admin: `gitea_admin` / `REDACTED`
-- Grafana: `admin` / `REDACTED`
-- Harbor admin: `admin` / `REDACTED` (política requiere mayúscula)
-- Harbor user badorius: `badorius` / `REDACTED`
-- Woodpecker agent secret: `REDACTED`
-- Sewbase DB: `sewuser` / `REDACTED`
+### Credenciales (Session 4)
+- **NOTA**: Todas las credenciales están almacenadas en Proton Pass, vault **homelab**.
+- Gitea admin: `gitea_admin` — `pass-cli item view --vault-name homelab --item-title gitea-admin --field password`
+- Grafana: `admin` — `pass-cli item view --vault-name homelab --item-title grafana-admin --field password`
+- Harbor admin: `admin` — `pass-cli item view --vault-name homelab --item-title harbor-admin --field password`
+- Harbor user badorius: `badorius` — `pass-cli item view --vault-name homelab --item-title harbor-badorius --field password`
+- Woodpecker agent secret: `pass-cli item view --vault-name homelab --item-title woodpecker-agent-secret --field password`
+- Sewbase DB: `sewuser` — `pass-cli item view --vault-name homelab --item-title sewbase-db --field password`
 
 ### What Changed This Session (4)
-- **Secrets**: Todos los servicios actualizados a `REDACTED` (`REDACTED` para Harbor).
+- **Secrets**: Todos los servicios unificados con la misma contraseña base (excepto Harbor que requiere mayúscula).
 - **Harbor**: Password admin cambiada. Usuario `badorius` creado. Proyecto `badorius` creado con permisos developer.
-- **harbor-pull-secret**: Creado en namespace `sewbase` con `badorius`/`REDACTED`.
+- **harbor-pull-secret**: Creado en namespace `sewbase` con usuario `badorius` (ver vault homelab).
 - **TLS Grafana**: `values.yaml` actualizado con `ingressClassName: traefik` y cert-manager. Helm upgrade aplicado. Certificado `grafana-tls` activo.
 - **TLS Sewbase**: Ingress corregido con cert-manager. Certificado `sewbase-tls` activo.
 - **Traefik Dashboard**: `HelmChartConfig` aplicado (api.dashboard=true, api.insecure=true). Ingress + Service `traefik-dashboard-svc` en puerto 9000. DNS `traefik.home` añadido.
@@ -726,7 +726,7 @@ kubectl delete namespace <namespace>
   sudo systemctl restart docker
   cd /home/darthv/git/badorius/sewbase_guitea
   docker build -t registry.home/badorius/sewbase:latest .
-  echo "REDACTED" | docker login registry.home -u badorius --password-stdin
+  pass-cli item view --vault-name homelab --item-title harbor-badorius --field password | docker login registry.home -u badorius --password-stdin
   docker push registry.home/badorius/sewbase:latest
   ```
   Después el pod de sewbase arrancará automáticamente.
@@ -734,14 +734,14 @@ kubectl delete namespace <namespace>
 #### ⚠️ Woodpecker Pipeline secrets — requieren setup manual
 - **Issue**: Los secrets `docker_password`, `argocd_server`, `argocd_token` deben configurarse en la UI de Woodpecker.
 - **Next action**:
-  1. Abrir `https://ci.home` → Login con Gitea OAuth (`gitea_admin`/`REDACTED`)
+  1. Abrir `https://ci.home` → Login con Gitea OAuth (`gitea_admin` — ver vault homelab: gitea-admin)
   2. Ir a **Settings → Token** → Generar personal access token
   3. Con ese token, vía CLI (`/tmp/woodpecker-cli`):
      ```bash
      export WOODPECKER_SERVER=https://ci.home
      export WOODPECKER_TOKEN=<tu-token>
      # Secrets globales (admin)
-     /tmp/woodpecker-cli secret add --global --name docker_password --value REDACTED
+     /tmp/woodpecker-cli secret add --global --name docker_password --value "$(pass-cli item view --vault-name homelab --item-title harbor-badorius --field password)"
      /tmp/woodpecker-cli secret add --global --name argocd_server --value argocd.home
      /tmp/woodpecker-cli secret add --global --name argocd_token --value <token-de-argocd>
      ```

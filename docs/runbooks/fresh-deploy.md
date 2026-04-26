@@ -200,8 +200,8 @@ kubectl rollout restart statefulset woodpecker-server -n woodpecker
 ## Phase 6 — Configure Harbor
 
 1. Login to `https://registry.home` as `admin`
-2. Change admin password (must have uppercase, e.g., `REDACTED`)
-3. Create user `badorius` with password `REDACTED`
+2. Change admin password (must have uppercase — use value from Proton Pass vault homelab: **harbor-admin**)
+3. Create user `badorius` with password from Proton Pass vault homelab: **harbor-badorius**
 4. Create project `badorius` (private)
 5. Add `badorius` as Developer to the `badorius` project
 

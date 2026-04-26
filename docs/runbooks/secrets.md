@@ -33,7 +33,7 @@ kubectl create secret docker-registry harbor-pull-secret \
   --namespace my-namespace \
   --docker-server=registry.home \
   --docker-username=badorius \
-  --docker-password='REDACTED'
+  --docker-password="$(pass-cli item view --vault-name homelab --item-title harbor-badorius --field password)"
 
 # TLS secret (manual, rarely needed — cert-manager handles TLS automatically)
 kubectl create secret tls my-tls-secret \

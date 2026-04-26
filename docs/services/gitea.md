@@ -8,7 +8,7 @@ Self-hosted private Git server. Hosts private application repos (sewbase_guitea,
 |----------|-------|
 | URL | https://gitea.home |
 | Admin username | gitea_admin |
-| Admin password | REDACTED (from gitea-admin-secret) |
+| Admin password | see Proton Pass vault homelab: **gitea-admin** |
 | Namespace | gitea |
 | Chart | gitea/gitea 10.1.4 |
 | Managed by | ArgoCD (`gitea` Application) |
@@ -57,16 +57,16 @@ If the OAuth app is lost (after namespace wipe), recreate it:
 
 ```bash
 # Create API token (for scripts)
-curl -k -u gitea_admin:REDACTED \
+curl -k -u gitea_admin:$(pass-cli item view --vault-name homelab --item-title gitea-admin --field password) \
   -X POST https://gitea.home/api/v1/users/gitea_admin/tokens \
   -H "Content-Type: application/json" \
   -d '{"name":"my-token"}'
 
 # List repos
-curl -k -u gitea_admin:REDACTED https://gitea.home/api/v1/repos/search
+curl -k -u gitea_admin:$(pass-cli item view --vault-name homelab --item-title gitea-admin --field password) https://gitea.home/api/v1/repos/search
 
 # Create repo
-curl -k -u gitea_admin:REDACTED \
+curl -k -u gitea_admin:$(pass-cli item view --vault-name homelab --item-title gitea-admin --field password) \
   -X POST https://gitea.home/api/v1/user/repos \
   -H "Content-Type: application/json" \
   -d '{"name":"myapp","private":true}'
@@ -84,7 +84,7 @@ git config http.sslCAInfo /path/to/homelab-root-ca.crt
 git config --global http.https://gitea.home.sslCAInfo /path/to/homelab-root-ca.crt
 ```
 
-Remote URL format: `https://gitea_admin:REDACTED@gitea.home/gitea_admin/REPO.git`
+Remote URL format: `https://gitea_admin:$(pass-cli item view --vault-name homelab --item-title gitea-admin --field password)@gitea.home/gitea_admin/REPO.git`
 
 ## Troubleshooting
 
