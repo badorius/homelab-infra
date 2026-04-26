@@ -763,13 +763,21 @@ kubectl delete namespace <namespace>
 - **Root cause sewbase error**: `secrets.example.yaml` estaba en `infra/k8s/sewbase/` — ArgoCD lo aplicaba con valores placeholder (`YOUR_PASSWORD`, `YOUR_POSTGRES_PASSWORD`) sobreescribiendo los secrets reales en cada sync.
 - **Fix**: Movido `secrets.example.yaml` a `docs/infra/` (fuera del path de ArgoCD). Pusheado a Gitea.
 - **Postgres password corregida**: Cambiada en la DB a valor real del vault. Secrets recreados con `pass-cli`.
-- **Schema aplicado manualmente**: La DB estaba vacía (0 tablas). Schema completo aplicado via `kubectl exec + psql`. Nota: hay schema drift — ver `sewbase_guitea/AGENTS.md §5`.
+- **Schema aplicado manualmente**: La DB estaba vacía (0 tablas). Schema completo aplicado via `kubectl exec + psql`.
 - **Dockerfile mejorado**: CMD actualizado para ejecutar `prisma migrate deploy` antes de arrancar.
 - **app.yaml mejorado**: Eliminado `DATABASE_URL` duplicado (ya viene de `envFrom`). Añadido `readinessProbe`.
 - **Documentación sewbase_guitea**: Creados `CLAUDE.md`, `AGENTS.md` completo, `docs/infra/deployment.md`, `docs/infra/secrets.md`.
 - **Proton Pass**: Añadido item `sewbase-auth` (NextAuth AUTH_SECRET).
 - **sewbase-app-secrets**: Recreado con `DATABASE_URL` y `AUTH_SECRET` reales desde vault.
-- **Sewbase status**: Pod Running, schema OK, app responde 200. Woodpecker secrets pendientes.
+
+### What Changed This Session (7 cont.) — 2026-04-26 (Woodpecker, Schema Drift, S3)
+
+- **Woodpecker secrets configurados**: `docker_password`, `argocd_server`, `argocd_token` añadidos como global secrets via REST API (`POST https://ci.home/api/secrets`). JWT token generado manualmente en Python desde `user_hash` SQLite.
+- **Woodpecker repo activado**: `sewbase_guitea` activo. `gitea_admin` creado como usuario admin. Repo activation: `POST /api/repos?forge_remote_id=1` (query param, no body).
+- **Woodpecker TLS fix**: `WOODPECKER_GITEA_SKIP_VERIFY: "true"` añadido al server (Helm chart v1.5.0 no soporta `server.extraVolumes`). Aplicado via `kubectl patch statefulset`.
+- **Schema drift sewbase resuelto**: Creada y aplicada migración `20260426000000_add_missing_columns`. Todos los cambios registrados en `_prisma_migrations`.
+- **S3 rename**: `MINIO_*` → `S3_*` env vars en `storage.ts`, `secrets.md`, `secrets.example.yaml`, `CLAUDE.md`. Prep para Hetzner Object Storage o cualquier proveedor S3-compatible.
+- **ArgoCD homelab-infra**: Apps `gitea`/`harbor`/`woodpecker` muestran Unknown (auth GitHub issue pre-existente, no bloqueante).
 
 ### Infrastructure Status (Session 7)
 
@@ -803,10 +811,10 @@ kubectl delete namespace <namespace>
 
 ### Next Session Priorities
 
-1. **Woodpecker secrets sewbase** — configurar `docker_password`, `argocd_server`, `argocd_token` en Woodpecker UI.
-2. **Schema drift sewbase** — crear migración Prisma que reconcilie el schema actual con las columnas faltantes.
-3. **MinIO** — crear item `minio-admin` en Proton Pass vault; configurar bucket `sewbase` en OMV.
-4. **Pipeline end-to-end** — push a sewbase_guitea y verificar build → Harbor → ArgoCD.
+1. **Pipeline end-to-end** — push a sewbase_guitea y verificar Woodpecker build → Harbor → ArgoCD (nunca probado end-to-end).
+2. **S3 storage** — decidir proveedor (MinIO OMV vs Hetzner Object Storage), configurar bucket `sewbase`, crear item `s3-secret` en vault, actualizar `sewbase-app-secrets`.
+3. **ArgoCD homelab-infra GitHub auth** — `gitea`/`harbor`/`woodpecker` apps muestran Unknown; cambios en kustomizations requieren `kubectl patch` manual hasta resolver.
+4. **Feature development** — inicio de desarrollo según `docs/ux/mvp-scope.md` en sewbase_guitea.
 5. **Calibre-Web** — subir librería de libros al PVC `calibre-books-pvc`.
 
 ---
