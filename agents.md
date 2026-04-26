@@ -2,8 +2,9 @@
 
 > **IMPORTANT**: This file is the single source of truth for AI agent context across sessions.
 > Update the **Session State** section at the end of every session before closing.
-> Never store passwords, secrets, API keys or tokens in this file or anywhere in this repo.
+> **NEVER store passwords, secrets, API keys or tokens in this file or anywhere in this repo.**
 > The repository is PUBLIC. All secrets are injected at runtime via `kubectl create secret`.
+> **Credentials live in Proton Pass vault `homelab`** — retrieve via `pass-cli item view --vault-name homelab --item-title <name> --field password`.
 
 ---
 
@@ -140,7 +141,7 @@ All `*.home` domains resolve via OpenWrt's `dnsmasq` to `192.168.8.248` (K3s mas
 
 ## 5. Key Design Decisions & Rules
 
-1. **No secrets in the repo** — The repository is public. All passwords, API keys, OAuth tokens, and certificates are injected at runtime via `kubectl create secret`. See README.md §2 for the exact commands.
+1. **No secrets in the repo** — The repository is public. All passwords, API keys, OAuth tokens, and certificates are injected at runtime via `kubectl create secret`. **Credentials are stored in Proton Pass vault `homelab`** — use `pass-cli item view --vault-name homelab --item-title <name> --field password` in documentation and commands instead of hardcoded values. See README.md §2 for the exact commands.
 2. **IaC-first** — Every infrastructure change must be expressed in code (Ansible playbook/role or Kubernetes manifest). No manual ad-hoc changes that are not reflected in the repo.
 3. **ArgoCD as the CD engine** — Services managed by ArgoCD must not be applied manually with `kubectl apply`. Push to git, let ArgoCD sync. Force sync only when debugging.
 4. **Helm via Kustomize** — ArgoCD uses `--enable-helm` Kustomize option. Services are defined as `helmCharts` entries in `kustomization.yaml`, keeping everything declarative without a separate Helm release workflow.
@@ -748,9 +749,17 @@ kubectl delete namespace <namespace>
   4. Token ArgoCD: `argocd account generate-token --account admin --grpc-web`
   5. Registrar el repo sewbase_guitea en Woodpecker y activarlo
 
+### What Changed This Session (6) — 2026-04-26
+
+- **Security cleanup**: Todos los passwords hardcodeados eliminados de la documentación y del historial de git (git-filter-repo, 54 commits reescritos).
+- **Proton Pass**: Vault `homelab` creado/poblado con 6 entradas: `harbor-admin`, `harbor-badorius`, `gitea-admin`, `grafana-admin`, `woodpecker-agent-secret`, `sewbase-db`.
+- **Documentación actualizada**: Todos los ficheros `.md` usan `pass-cli item view --vault-name homelab --item-title <name> --field password` en lugar de contraseñas literales.
+- **Rules actualizadas**: §5, §11 y agents.md header — regla explícita de no hardcodear passwords.
+- **Repo estuvo seguro**: El repo se hizo privado antes de que los commits con passwords fueran pusheados al remoto.
+
 ### Next Session Priorities
 
-1. **Build y push imagen sewbase** — ejecutar los comandos docker del bloque anterior.
+1. **Build y push imagen sewbase** — ejecutar los comandos docker del bloque anterior (usar pass-cli para el login).
 2. **Configurar secrets Woodpecker** — login UI y crear secrets globales.
 3. **Verificar pipeline end-to-end** — push a sewbase_guitea y verificar build → Harbor → ArgoCD.
 4. **Calibre-Web** — subir librería de libros al PVC `calibre-books-pvc`.
@@ -763,7 +772,7 @@ When working in this repository, always:
 
 1. **Read this file first** at the start of every session to understand current state.
 2. **Update Session State (§10)** at the end of every session — be specific about what changed.
-3. **Never add secrets** to any file in this repo. If a secret is needed, document the `kubectl create secret` command.
+3. **Never add secrets** to any file in this repo. If a secret is needed, document the `kubectl create secret` command. **For passwords in docs/commands, always use `pass-cli item view --vault-name homelab --item-title <name> --field password`** — never hardcode the actual value.
 4. **Keep all code/docs in English** even when the conversation with the user is in Spanish.
 5. **Prefer IaC** — every change must be expressed in Ansible or Kubernetes manifests.
 6. **Use ArgoCD for CD** — for ArgoCD-managed services, push to git and sync. Don't apply manually.
@@ -771,3 +780,4 @@ When working in this repository, always:
 8. **Add DNS entries** for every new service in `ansible/roles/openwrt-dns/tasks/main.yml`.
 9. **All ingresses need TLS** via cert-manager annotation `cert-manager.io/cluster-issuer: homelab-ca`.
 10. **Consult existing patterns** before creating new manifests — check existing service kustomizations for conventions.
+11. **Password manager** — All homelab credentials are in Proton Pass vault `homelab`. Entries: `harbor-admin`, `harbor-badorius`, `gitea-admin`, `grafana-admin`, `woodpecker-agent-secret`, `sewbase-db`. Use `pass-cli item view` to retrieve them. Never create new entries without also adding them to the vault.
