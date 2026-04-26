@@ -825,12 +825,36 @@ When working in this repository, always:
 
 1. **Read this file first** at the start of every session to understand current state.
 2. **Update Session State (§10)** at the end of every session — be specific about what changed.
-3. **Never add secrets** to any file in this repo. If a secret is needed, document the `kubectl create secret` command. **For passwords in docs/commands, always use `pass-cli item view --vault-name homelab --item-title <name> --field password`** — never hardcode the actual value.
-4. **Keep all code/docs in English** even when the conversation with the user is in Spanish.
-5. **Prefer IaC** — every change must be expressed in Ansible or Kubernetes manifests.
-6. **Use ArgoCD for CD** — for ArgoCD-managed services, push to git and sync. Don't apply manually.
-7. **Document all new services** in §6 of this file and in `README.md` endpoint table.
-8. **Add DNS entries** for every new service in `ansible/roles/openwrt-dns/tasks/main.yml`.
-9. **All ingresses need TLS** via cert-manager annotation `cert-manager.io/cluster-issuer: homelab-ca`.
-10. **Consult existing patterns** before creating new manifests — check existing service kustomizations for conventions.
-11. **Password manager** — All homelab credentials are in Proton Pass vault `homelab`. Entries: `harbor-admin`, `harbor-badorius`, `gitea-admin`, `grafana-admin`, `woodpecker-agent-secret`, `sewbase-db`. Use `pass-cli item view` to retrieve them. Never create new entries without also adding them to the vault.
+3. **Check cross-repo notifications** — read `§12 Inbox` below and `../sewbase_guitea/AGENTS.md §9 Outbox` at session start; write to `§12 Outbox` at session end for any changes sewbase must know about.
+4. **Never add secrets** to any file in this repo. If a secret is needed, document the `kubectl create secret` command. **For passwords in docs/commands, always use `pass-cli item view --vault-name homelab --item-title <name> --field password`** — never hardcode the actual value.
+5. **Keep all code/docs in English** even when the conversation with the user is in Spanish.
+6. **Prefer IaC** — every change must be expressed in Ansible or Kubernetes manifests.
+7. **Use ArgoCD for CD** — for ArgoCD-managed services, push to git and sync. Don't apply manually.
+8. **Document all new services** in §6 of this file and in `README.md` endpoint table.
+9. **Add DNS entries** for every new service in `ansible/roles/openwrt-dns/tasks/main.yml`.
+10. **All ingresses need TLS** via cert-manager annotation `cert-manager.io/cluster-issuer: homelab-ca`.
+11. **Consult existing patterns** before creating new manifests — check existing service kustomizations for conventions.
+12. **Password manager** — All homelab credentials are in Proton Pass vault `homelab`. Entries: `harbor-admin`, `harbor-badorius`, `gitea-admin`, `grafana-admin`, `woodpecker-agent-secret`, `sewbase-db`. Use `pass-cli item view` to retrieve them. Never create new entries without also adding them to the vault.
+
+---
+
+## 12. Cross-Repo Notifications
+
+> **Protocol**: This section is the async interface between this repo and `sewbase_guitea`.
+>
+> - **Outbox → sewbase**: Written here when a homelab-infra session makes changes that sewbase should know about. A sewbase session consumes these items, acts on them, then marks them `[done]` in sewbase's `AGENTS.md §9 Inbox`.
+> - **Inbox ← sewbase**: Items received from sewbase sessions. Written here by the sewbase AI after it identifies something homelab-infra needs to act on.
+>
+> The other repo lives at `../sewbase_guitea/`. Read its `AGENTS.md §9` at session start if cross-repo work is expected.
+
+### Outbox → sewbase (pending)
+
+_No pending items._
+
+### Inbox ← sewbase (received)
+
+| Date | Item | Notes |
+|------|------|-------|
+| 2026-04-26 | `MINIO_*` → `S3_*` rename | All S3 env vars renamed; `sewbase-app-secrets` must use `S3_*` keys |
+| 2026-04-26 | Schema drift resolved | Reconciliation migration applied; `_prisma_migrations` has 2 entries |
+| 2026-04-26 | `secrets.example.yaml` moved | Moved from `infra/k8s/sewbase/` to `docs/infra/` — never put it back |
