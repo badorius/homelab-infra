@@ -23,6 +23,9 @@ helmCharts:
           server:
             DOMAIN: gitea.home
             ROOT_URL: "https://gitea.home/"
+          webhook:
+            ALLOWED_HOST_LIST: "ci.home"
+            SKIP_TLS_VERIFY: "true"
       postgresql-ha:
         enabled: false
       postgresql:
