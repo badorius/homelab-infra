@@ -671,7 +671,7 @@ kubectl delete namespace <namespace>
 > Update this section at the beginning and end of every working session.
 > This is the handoff document between AI sessions. Be specific about what works, what doesn't, and what the immediate next action is.
 
-### Last Updated: 2026-05-01 (Session 8)
+### Last Updated: 2026-05-01 (Session 9)
 
 ### Infrastructure Status
 
@@ -715,6 +715,16 @@ kubectl delete namespace <namespace>
 - **Woodpecker agentes**: CA montado vía ConfigMap `homelab-ca-cert` para trusting de Harbor.
 - **sewbase_guitea**: `.woodpecker.yml` corregido (buildkit_config para CA). `app.yaml` corregido (ingressClassName). Pusheado a Gitea.
 - **Infra repo**: `kubernetes/infra/traefik/`, `kubernetes/services/calibre/` añadidos.
+
+### What Changed This Session (9) — 2026-05-01
+
+- **Security audit pre-publicación**: Repo escaneado completamente (ficheros actuales + historial git). Sin secretos en ficheros.
+- **Git history limpiado**: Commit `bc98371` tenía la contraseña `Cluster12/cluster12` en el mensaje de commit. Reescrito con `git filter-branch`, refs/original eliminados, `git gc --prune=now --aggressive`. Force-push a GitHub. Historia limpia verificada.
+- **Rotación completa de contraseñas**: Todos los secrets rotados con contraseñas aleatorias de 24-32 chars (generadas con `pass-cli password generate random --symbols false`). Vault Proton Pass actualizado (6 items). Secretos K8s recreados. PostgreSQL `ALTER USER` aplicado. Harbor cambiado via UI.
+- **Secrets rotados**: `gitea-admin-secret` (con campo `username`), `grafana-admin-credentials`, `woodpecker-server-secret` (OAuth Gitea preservado), `woodpecker-agent-secret`, `sewbase-db-secrets`, `sewbase-app-secrets`, `harbor-pull-secret`.
+- **Vault pass-cli**: `pass-cli item update --field` NO funciona para el campo password nativo de items Login. Hay que usar `pass-cli item delete` + `pass-cli item create login --password VALUE` en la misma sesión de shell.
+- **CA cert pública**: `ansible/roles/common/files/homelab-root-ca.crt` — es la clave pública del CA, no la privada. Es correcto tenerla en el repo. Expira 2026-07-12.
+- **Repo listo para público**: Tras estos cambios el repo puede hacerse público en GitHub.
 
 ### What Changed This Session (8) — 2026-05-01
 
