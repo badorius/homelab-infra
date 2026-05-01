@@ -23,13 +23,27 @@
       192.168.8.12 arch02.home arch02
       192.168.8.13 arch03.home arch03
 
+- name: Fetch homelab CA certificate from Proton Pass
+  command: >
+    pass-cli item view --vault-name homelab --item-title homelab-root-ca --output json
+  register: _ca_vault_raw
+  delegate_to: localhost
+  run_once: true
+  changed_when: false
+  tags: [common, ca_trust]
+
+- name: Parse CA cert content from vault output
+  set_fact:
+    homelab_ca_cert: "{{ (_ca_vault_raw.stdout | from_json)['item']['content']['note'] }}"
+  tags: [common, ca_trust]
+
 - name: Trust Homelab Root CA (Arch Linux)
   when: ansible_os_family == "Archlinux"
   tags: [common, ca_trust]
   block:
     - name: Copy CA certificate to trust anchors
       copy:
-        src: homelab-root-ca.crt
+        content: "{{ homelab_ca_cert }}"
         dest: /etc/ca-certificates/trust-source/anchors/homelab-root-ca.crt
       register: arch_ca_copy
 
@@ -43,7 +57,7 @@
   block:
     - name: Copy CA certificate to local trust store
       copy:
-        src: homelab-root-ca.crt
+        content: "{{ homelab_ca_cert }}"
         dest: /usr/local/share/ca-certificates/homelab-root-ca.crt
         mode: '0644'
       register: debian_ca_copy
@@ -62,5 +76,3 @@
   failed_when: false
   tags: [common, ca_trust]
   when: (arch_ca_copy is defined and arch_ca_copy.changed) or (debian_ca_copy is defined and debian_ca_copy.changed)
-
-
