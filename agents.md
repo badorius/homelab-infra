@@ -671,7 +671,7 @@ kubectl delete namespace <namespace>
 > Update this section at the beginning and end of every working session.
 > This is the handoff document between AI sessions. Be specific about what works, what doesn't, and what the immediate next action is.
 
-### Last Updated: 2026-04-25 (Session 4)
+### Last Updated: 2026-05-01 (Session 8)
 
 ### Infrastructure Status
 
@@ -680,17 +680,18 @@ kubectl delete namespace <namespace>
 | Arch hosts (arch01-03) | ✅ Running | Ansible-managed |
 | VMs (vm01-03) | ✅ Running | CA trusted, k3s healthy |
 | K3s cluster | ✅ Running | 1 master + 2 workers |
-| Traefik ingress | ✅ Running | Dashboard habilitado en `https://traefik.home` |
-| cert-manager | ✅ Running | homelab-ca ClusterIssuer — todos los endpoints con TLS |
-| ArgoCD | ✅ Running | `https://argocd.home` |
+| Traefik ingress | ✅ Running | `https://traefik.home` |
+| cert-manager | ✅ Running | homelab-ca ClusterIssuer — TLS en todos los endpoints |
+| ArgoCD | ✅ Running | `https://argocd.home`, selfHeal activo |
 | Gitea | ✅ Running | `https://gitea.home`, usuario: `gitea_admin` |
-| Woodpecker CI | ✅ Running | `https://ci.home`, OAuth2 OK, CA montado en agentes |
-| Harbor | ✅ Running | `https://registry.home`, usuario `badorius` creado, proyecto `badorius` creado |
-| Prometheus/Grafana | ✅ Running | `https://grafana.home` — TLS habilitado (cert-manager) |
+| Woodpecker CI | ✅ Running | `https://ci.home`, OAuth2 OK |
+| Harbor | ✅ Running | `https://registry.home`, imagen sewbase existe |
+| Prometheus/Grafana | ✅ Running | `https://grafana.home` |
 | Homepage | ✅ Running | `https://homepage.home` |
 | qBittorrent | ✅ Running | `https://qbittorrent.home` |
-| Sewbase | ⚠️ ImagePullBackOff | Manifests OK, image no existe aún en Harbor |
-| Calibre-Web | ✅ Deployed | `https://calibre.home`, PVCs 1Gi config + 50Gi books |
+| Sewbase | ✅ Running | `https://sewbase.home`, postgres en NFS correctamente |
+| Calibre-Web | ✅ Running | `https://calibre.home` |
+| NFS provisioner | ✅ Running | Base path cambiado a `/share/k3s/` |
 | OMV NAS | ✅ Running | `192.168.8.15`, NFS exports active |
 
 ### Credenciales (Session 4)
@@ -714,6 +715,13 @@ kubectl delete namespace <namespace>
 - **Woodpecker agentes**: CA montado vía ConfigMap `homelab-ca-cert` para trusting de Harbor.
 - **sewbase_guitea**: `.woodpecker.yml` corregido (buildkit_config para CA). `app.yaml` corregido (ingressClassName). Pusheado a Gitea.
 - **Infra repo**: `kubernetes/infra/traefik/`, `kubernetes/services/calibre/` añadidos.
+
+### What Changed This Session (8) — 2026-05-01
+
+- **Bug fix crítico — postgres mountPath**: `postgres.yaml` corregido. Bitnami PostgreSQL usa `/bitnami/postgresql` como directorio de datos, NO `/var/lib/postgresql/data`. El PVC NFS estaba montado en el path incorrecto → todos los datos se perdían al reiniciar el pod. Fix: mountPath cambiado a `/bitnami/postgresql`. Pusheado a Gitea, ArgoCD synced.
+- **NFS reorganización**: Todos los directorios de PVCs movidos de `/share/` a `/share/k3s/`. 49 directorios (19 activos + 30 archived). PVs de Kubernetes recreados con nuevas rutas. NFS provisioner actualizado con `nfs.path=/share/k3s`. Ansible role actualizado. Cluster completamente operativo tras la migración.
+- **Sewbase migraciones**: Aplicadas manualmente 2 veces (por el reinicio de postgres). Las tablas están en la DB. La imagen corriendo es antigua (no incluye `migrate deploy`). Pendiente: run `deploy.sh` para construir imagen nueva con CMD correcto.
+- **NFS provisioner**: Estaba en CrashLoopBackOff antes de la migración (causa desconocida). Después de `helm upgrade` con nuevo path está Running.
 
 ### Active Blockers
 
