@@ -867,6 +867,7 @@ When working in this repository, always:
 | 2026-05-01 | postgres mountPath bug fixed | `postgres.yaml` corregido: `mountPath: /bitnami/postgresql`. PVC NFS ahora en path correcto. Datos NO se pierden al reiniciar postgres. Pusheado a Gitea, ArgoCD synced. |
 | 2026-05-01 | NFS reorganización completa | Todos los PVCs de k3s ahora en `/share/k3s/`. Esto afecta al path NFS del PVC `sewbase-postgres-pvc-pvc-b01c289c-...`. No requiere acción en sewbase_guitea, pero es info relevante si debuggeas NFS. |
 | 2026-05-01 | Imagen sewbase necesita rebuild | La imagen en Harbor es antigua (sin `prisma migrate deploy`). Pendiente ejecutar `./deploy.sh`. Las migraciones están en la DB: 11 tablas, todo correcto. |
+| 2026-05-01 | Rotación completa de credenciales sewbase | `sewbase-db-secrets`, `sewbase-app-secrets` y `harbor-pull-secret` recreados con nuevas contraseñas. PostgreSQL `ALTER USER sewuser` ejecutado — nueva contraseña activa. Vault Proton Pass actualizado. Recuperar con `pass-cli item view --vault-name homelab --item-title sewbase-db` y `harbor-badorius`. El pod sewbase activo (`sewbase-5fffc9bdcb-9nc84`) está corriendo con los nuevos secrets. AUTH_SECRET preservado sin cambios. |
 
 ### Inbox ← sewbase (received)
 
