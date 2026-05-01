@@ -725,6 +725,8 @@ kubectl delete namespace <namespace>
 - **Vault pass-cli**: `pass-cli item update --field` NO funciona para el campo password nativo de items Login. Hay que usar `pass-cli item delete` + `pass-cli item create login --password VALUE` en la misma sesión de shell.
 - **CA cert pública**: `ansible/roles/common/files/homelab-root-ca.crt` — es la clave pública del CA, no la privada. Es correcto tenerla en el repo. Expira 2026-07-12.
 - **Repo listo para público**: Tras estos cambios el repo puede hacerse público en GitHub.
+- **CA cert movido a vault**: `ansible/roles/common/files/homelab-root-ca.crt` eliminado del repo. Almacenado como nota `homelab-root-ca` en Proton Pass vault homelab. Rol Ansible actualizado para obtenerlo vía `pass-cli item view` en runtime. Expira 2026-07-12.
+- **Runbook creado**: `docs/runbooks/secret-rotation.md` — proceso completo de rotación de secretos documentado.
 
 ### What Changed This Session (8) — 2026-05-01
 
