@@ -20,7 +20,7 @@
   shell: >
     helm upgrade --install nfs-subdir-external-provisioner nfs-subdir-external-provisioner/nfs-subdir-external-provisioner
     --set nfs.server=192.168.8.15
-    --set nfs.path=/share
+    --set nfs.path=/share/k3s
     --set storageClass.name=nfs-client
     --set storageClass.defaultClass=true
     --namespace nfs-provisioner --create-namespace
