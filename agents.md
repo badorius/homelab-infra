@@ -725,37 +725,29 @@ kubectl delete namespace <namespace>
 
 ### Active Blockers
 
-#### ⚠️ Sewbase — imagen no existe en Harbor
-- **Issue**: `sewbase` pod en `ImagePullBackOff`. Harbor pull-secret OK, pero la imagen no se ha construido nunca.
-- **Root cause**: CI/CD pipeline nunca completó un build. La imagen `registry.home/badorius/sewbase:latest` no existe en Harbor.
-- **Next action (manual, requiere sudo en workstation)**:
+#### ⚠️ Sewbase — imagen antigua en Harbor (sin migrate deploy)
+- **Issue**: La imagen corriendo (`registry.home/badorius/sewbase:latest`) es antigua y NO ejecuta `prisma migrate deploy` al arrancar. Si postgres pierde datos, el pod no se autorecupera. Las migraciones están en la DB ahora, pero hay que rebuild.
+- **Root cause**: La imagen fue construida antes de que el Dockerfile tuviera el CMD correcto.
+- **Next action**: Ejecutar `deploy.sh` en la workstation (o portátil):
   ```bash
-  sudo mkdir -p /etc/docker/certs.d/registry.home
-  sudo cp /tmp/homelab-root-ca.crt /etc/docker/certs.d/registry.home/ca.crt
+  # Verificar que Harbor CA está confiada por Docker (una vez por máquina)
+  kubectl get secret root-secret -n cert-manager -o jsonpath='{.data.ca\.crt}' | base64 -d | \
+    sudo tee /etc/docker/certs.d/registry.home/ca.crt
   sudo systemctl restart docker
+  # Login y deploy
+  pass-cli item view --vault-name homelab --item-title harbor-badorius --field password | \
+    docker login registry.home -u badorius --password-stdin
   cd /home/darthv/git/badorius/sewbase_guitea
-  docker build -t registry.home/badorius/sewbase:latest .
-  pass-cli item view --vault-name homelab --item-title harbor-badorius --field password | docker login registry.home -u badorius --password-stdin
-  docker push registry.home/badorius/sewbase:latest
+  ./deploy.sh
   ```
-  Después el pod de sewbase arrancará automáticamente.
 
-#### ⚠️ Woodpecker Pipeline secrets — requieren setup manual
-- **Issue**: Los secrets `docker_password`, `argocd_server`, `argocd_token` deben configurarse en la UI de Woodpecker.
-- **Next action**:
-  1. Abrir `https://ci.home` → Login con Gitea OAuth (`gitea_admin` — ver vault homelab: gitea-admin)
-  2. Ir a **Settings → Token** → Generar personal access token
-  3. Con ese token, vía CLI (`/tmp/woodpecker-cli`):
-     ```bash
-     export WOODPECKER_SERVER=https://ci.home
-     export WOODPECKER_TOKEN=<tu-token>
-     # Secrets globales (admin)
-     /tmp/woodpecker-cli secret add --global --name docker_password --value "$(pass-cli item view --vault-name homelab --item-title harbor-badorius --field password)"
-     /tmp/woodpecker-cli secret add --global --name argocd_server --value argocd.home
-     /tmp/woodpecker-cli secret add --global --name argocd_token --value <token-de-argocd>
-     ```
-  4. Token ArgoCD: `argocd account generate-token --account admin --grpc-web`
-  5. Registrar el repo sewbase_guitea en Woodpecker y activarlo
+#### ⚠️ Woodpecker Pipeline clone — roto (baja prioridad)
+- **Issue**: El clone step falla. Ver detalles completos en `sewbase_guitea/AGENTS.md §8`.
+- **Workaround activo**: Usar `deploy.sh` para deploys manuales.
+
+#### ⚠️ ArgoCD — GitHub auth para gitea/harbor/woodpecker
+- **Issue**: Apps `gitea`, `harbor`, `woodpecker` muestran Unknown en ArgoCD (repo GitHub no accesible). `selfHeal` activo puede revertir cambios manuales.
+- **Impact**: Cambios en `kubernetes/services/{gitea,harbor,woodpecker}/` requieren `kubectl apply -k` manual hasta resolver.
 
 ### What Changed This Session (6) — 2026-04-26
 
@@ -819,11 +811,12 @@ kubectl delete namespace <namespace>
 
 ### Next Session Priorities
 
-1. **Pipeline end-to-end** — push a sewbase_guitea y verificar Woodpecker build → Harbor → ArgoCD (nunca probado end-to-end).
+1. **Rebuild sewbase imagen** — `./deploy.sh` en sewbase_guitea para construir imagen con `prisma migrate deploy` en CMD. Esto elimina el riesgo de pérdida de schema ante cualquier reinicio de postgres.
 2. **S3 storage** — decidir proveedor (MinIO OMV vs Hetzner Object Storage), configurar bucket `sewbase`, crear item `s3-secret` en vault, actualizar `sewbase-app-secrets`.
-3. **ArgoCD homelab-infra GitHub auth** — `gitea`/`harbor`/`woodpecker` apps muestran Unknown; cambios en kustomizations requieren `kubectl patch` manual hasta resolver.
-4. **Feature development** — inicio de desarrollo según `docs/ux/mvp-scope.md` en sewbase_guitea.
-5. **Calibre-Web** — subir librería de libros al PVC `calibre-books-pvc`.
+3. **Feature development** — desarrollo MVP según `docs/ux/mvp-scope.md` en sewbase_guitea. Pipeline CI/CD en pausa — usar `deploy.sh`.
+4. **Fix Woodpecker pipeline clone** (baja prioridad) — ver enfoques en `sewbase_guitea/AGENTS.md §8`.
+5. **ArgoCD GitHub auth** — `gitea`/`harbor`/`woodpecker` muestran Unknown. Resolver para que ArgoCD pueda gestionar estos servicios correctamente.
+6. **Calibre-Web** — subir librería de libros al PVC `calibre-books-pvc`.
 
 ---
 
@@ -857,7 +850,11 @@ When working in this repository, always:
 
 ### Outbox → sewbase (pending)
 
-_No pending items._
+| Date | Item | Notes |
+|------|------|-------|
+| 2026-05-01 | postgres mountPath bug fixed | `postgres.yaml` corregido: `mountPath: /bitnami/postgresql`. PVC NFS ahora en path correcto. Datos NO se pierden al reiniciar postgres. Pusheado a Gitea, ArgoCD synced. |
+| 2026-05-01 | NFS reorganización completa | Todos los PVCs de k3s ahora en `/share/k3s/`. Esto afecta al path NFS del PVC `sewbase-postgres-pvc-pvc-b01c289c-...`. No requiere acción en sewbase_guitea, pero es info relevante si debuggeas NFS. |
+| 2026-05-01 | Imagen sewbase necesita rebuild | La imagen en Harbor es antigua (sin `prisma migrate deploy`). Pendiente ejecutar `./deploy.sh`. Las migraciones están en la DB: 11 tablas, todo correcto. |
 
 ### Inbox ← sewbase (received)
 
